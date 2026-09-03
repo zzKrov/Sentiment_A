@@ -26,7 +26,19 @@ except Exception:
 
 
 # -----------------------------------------------------------------------------
-# 1. PAGE SETUP & GLOWING NOIR STYLING (Python 3.11 Safe)
+# 1. HELPER: CLEAN HTML RENDERER (ELIMINATES MARKDOWN CODE-SNIPPET BUG)
+# -----------------------------------------------------------------------------
+def render_clean_html(html_str: str):
+    """
+    Strips all leading whitespace and empty lines so CommonMark
+    NEVER mistakes indented HTML for a 4-space code block.
+    """
+    clean = "".join(line.strip() for line in html_str.splitlines() if line.strip())
+    st.markdown(clean, unsafe_allow_html=True)
+
+
+# -----------------------------------------------------------------------------
+# 2. PAGE CONFIGURATION & GLOWING NOIR ATMOSPHERE
 # -----------------------------------------------------------------------------
 st.set_page_config(
     page_title="NOIR.AI // Emotion Companion",
@@ -35,7 +47,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
 )
 
-# Raw string literal prevents any curly brace syntax errors in Python 3.11
+# Raw string prevents any Python 3.11 curly brace syntax errors
 NOIR_ATMOSPHERE_HTML = r"""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=JetBrains+Mono:wght@300;400;600&family=Syne:wght@400;600;800&display=swap');
@@ -60,7 +72,7 @@ html, body, [data-testid="stAppViewContainer"] {
     background-size: 100% 4px;
     z-index: 1;
     pointer-events: none;
-    opacity: 0.5;
+    opacity: 0.45;
 }
 
 #noir-canvas-bg {
@@ -75,7 +87,7 @@ html, body, [data-testid="stAppViewContainer"] {
 
 .orbitron-title {
     font-family: 'Orbitron', monospace;
-    font-size: 2.6rem;
+    font-size: 2.5rem;
     font-weight: 900;
     letter-spacing: 2px;
     background: linear-gradient(135deg, #ffffff 10%, #64d2ff 60%, #0077ff 100%);
@@ -115,11 +127,20 @@ html, body, [data-testid="stAppViewContainer"] {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    background: radial-gradient(circle at center, rgba(100, 210, 255, 0.06) 0%, rgba(5, 7, 12, 0) 70%);
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    background: radial-gradient(circle at center, rgba(100, 210, 255, 0.08) 0%, rgba(5, 7, 12, 0) 70%);
+    border: 1px solid rgba(255, 255, 255, 0.06);
     border-radius: 20px;
     padding: 16px;
     min-height: 400px;
+}
+
+/* Force Streamlit Lottie widget to center and glow */
+iframe[title="streamlit_lottie.st_lottie"], div[data-testid="stLottie"] {
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    margin: 0 auto !important;
+    filter: drop-shadow(0 0 25px rgba(0, 229, 255, 0.25));
 }
 
 .stTextInput input {
@@ -163,7 +184,7 @@ html, body, [data-testid="stAppViewContainer"] {
                 x: e.clientX + (Math.random() - 0.5) * 6,
                 y: e.clientY + (Math.random() - 0.5) * 6,
                 size: Math.random() * 2.5 + 1,
-                alpha: 0.9,
+                alpha: 0.85,
                 decay: Math.random() * 0.025 + 0.015,
                 vx: (Math.random() - 0.5) * 1.2,
                 vy: (Math.random() - 0.5) * 1.2
@@ -185,7 +206,6 @@ html, body, [data-testid="stAppViewContainer"] {
     function animate() {
         ctx.clearRect(0, 0, w, h);
 
-        // Ambient particles
         for (let p of particles) {
             p.x += p.vx;
             p.y += p.vy;
@@ -202,7 +222,6 @@ html, body, [data-testid="stAppViewContainer"] {
             ctx.fill();
         }
 
-        // Mouse trail
         for (let i = trail.length - 1; i >= 0; i--) {
             const t = trail[i];
             t.x += t.vx;
@@ -226,34 +245,67 @@ html, body, [data-testid="stAppViewContainer"] {
 </script>
 """
 
-st.markdown(NOIR_ATMOSPHERE_HTML, unsafe_allow_html=True)
+render_clean_html(NOIR_ATMOSPHERE_HTML)
 
 
 # -----------------------------------------------------------------------------
-# 2. LOTTIE LOADER & MARKER SLICER (Supports graficos.json & AI robo.json)
+# 3. ROBUST LOTTIE LOADER (RESOLVES STREAMLIT CLOUD DIRECTORY ISSUES)
 # -----------------------------------------------------------------------------
 @st.cache_data
 def load_lottie_source():
-    """Detects and loads the Lottie animation file available in the directory."""
-    candidates = ["graficos.json", "AI robo.json", "ai_robo.json", "animation.json"]
-    for path in candidates:
-        if os.path.exists(path):
-            try:
-                with open(path, "r", encoding="utf-8") as source:
-                    return json.load(source)
-            except Exception:
-                pass
+    """
+    Searches both script location (__file__) and current working directory (cwd)
+    to guarantee file discovery regardless of Streamlit Cloud mount paths.
+    """
+    search_dirs = []
+    try:
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        search_dirs.append(script_dir)
+    except Exception:
+        pass
+    search_dirs.append(os.getcwd())
+    search_dirs.append(".")
 
-    # Generic search for any local Lottie JSON
-    for fname in os.listdir("."):
-        if fname.endswith(".json") and fname not in ["package.json", "tsconfig.json"]:
-            try:
-                with open(fname, "r", encoding="utf-8") as source:
-                    data = json.load(source)
-                    if isinstance(data, dict) and "layers" in data:
-                        return data
-            except Exception:
-                continue
+    candidate_names = [
+        "AI robo.json",
+        "graficos.json",
+        "ai robo.json",
+        "AI_robo.json",
+        "ai_robo.json",
+        "grafico.json",
+        "robot.json",
+    ]
+
+    # Direct filename search
+    for sdir in search_dirs:
+        if not sdir or not os.path.isdir(sdir):
+            continue
+        for name in candidate_names:
+            full_path = os.path.join(sdir, name)
+            if os.path.isfile(full_path):
+                try:
+                    with open(full_path, "r", encoding="utf-8") as f:
+                        data = json.load(f)
+                        if isinstance(data, dict) and ("layers" in data or "v" in data):
+                            return data
+                except Exception:
+                    pass
+
+    # Recursive directory walk fallback
+    for sdir in search_dirs:
+        if not sdir or not os.path.isdir(sdir):
+            continue
+        for root, _, files in os.walk(sdir):
+            for fname in files:
+                if fname.lower().endswith(".json") and fname.lower() not in ["package.json", "tsconfig.json"]:
+                    full_path = os.path.join(root, fname)
+                    try:
+                        with open(full_path, "r", encoding="utf-8") as f:
+                            data = json.load(f)
+                            if isinstance(data, dict) and ("layers" in data or "v" in data):
+                                return data
+                    except Exception:
+                        continue
     return None
 
 
@@ -262,8 +314,8 @@ base_animation = load_lottie_source()
 
 def get_mood_animation_slice(raw_anim, marker_name: str):
     """
-    Slices the Lottie animation's in-point (ip) and out-point (op)
-    so st.lottie loops the exact emotion segment without buttons.
+    Slices animation in-point (ip) and out-point (op) so st.lottie
+    loops the exact emotion segment without buttons.
     """
     if not raw_anim or not isinstance(raw_anim, dict):
         return None
@@ -290,10 +342,10 @@ def get_mood_animation_slice(raw_anim, marker_name: str):
 
 
 # -----------------------------------------------------------------------------
-# 3. TRANSLATION & TTS UTILITIES
+# 4. TRANSLATION & TTS UTILITIES
 # -----------------------------------------------------------------------------
 def translate_phrase(text: str, source_lang: str = "auto", target_lang: str = "en") -> str:
-    """Translates text with deep-translator, googletrans, or safe fallback."""
+    """Translates text reliably with deep-translator, googletrans, or safe fallback."""
     if not text or not text.strip():
         return ""
     if source_lang == target_lang:
@@ -328,15 +380,15 @@ def synthesize_speech(text: str, lang: str = "es") -> bytes:
 
 
 # -----------------------------------------------------------------------------
-# 4. EMOTIONAL PROTOCOLS & ACTION RESPONSES
+# 5. EMOTIONAL PROTOCOLS & ACTION RESPONSES
 # -----------------------------------------------------------------------------
 JOKES_SAD = [
     "—Papá, ¿qué se siente tener un hijo tan inteligente? —No sé hijo, pregúntale a tu abuelo.",
     "¿Qué le dice un bit a otro? —Nos vemos en el bus.",
     "¿Por qué los pájaros no usan WhatsApp? —Porque ya tienen Twitter.",
-    "¿Cómo maldice un informático cuando se frustra? —¡Me cago en el bit que te parió!",
+    "¿Cómo maldice un programador frustrado? —¡Me cago en el bit que te parió!",
     "¿Qué hace una abeja en el gimnasio? —¡Zumba!",
-    "Tranquilo/a: hasta el código más elegante tuvo errores antes de compilar con éxito.",
+    "Tranquilo/a: hasta el código más brillante tuvo errores antes de compilar con éxito.",
 ]
 
 MOTIVATIONS_HAPPY = [
@@ -361,7 +413,7 @@ PROMPTS_NEUTRAL = [
 
 ANGER_KEYWORDS = [
     "odio", "furia", "enojado", "enojada", "rabia", "molesto", "molesta", "ira",
-    "maldito", "maldita", "angry", "furious", "hate", "mad", "pissed", "rage"
+    "maldito", "maldita", "angry", "furious", "hate", "mad", "pissed", "rage", "stupid"
 ]
 
 EXCITED_KEYWORDS = [
@@ -374,7 +426,6 @@ def evaluate_sentiment(text_es: str, polarity: float, subjectivity: float):
     """Diagnoses mood, chooses Lottie animation marker and action protocol."""
     lower_text = text_es.lower()
 
-    # Anger / High Tension
     if any(k in lower_text for k in ANGER_KEYWORDS) or (polarity < -0.3 and subjectivity > 0.6):
         return {
             "mood_name": "Tensión / Alerta Emocional",
@@ -386,7 +437,6 @@ def evaluate_sentiment(text_es: str, polarity: float, subjectivity: float):
             "status": "Resonancia alterada detectada. Ejecutando modulación de estrés.",
         }
 
-    # High Excitement
     if any(k in lower_text for k in EXCITED_KEYWORDS) or (polarity >= 0.5):
         return {
             "mood_name": "Euforia / Alta Vibración",
@@ -398,7 +448,6 @@ def evaluate_sentiment(text_es: str, polarity: float, subjectivity: float):
             "status": "Pico de energía detectado. Canalizando impulso creativo.",
         }
 
-    # Standard Positive
     if polarity > 0.05:
         return {
             "mood_name": "Sentimiento Positivo",
@@ -410,7 +459,6 @@ def evaluate_sentiment(text_es: str, polarity: float, subjectivity: float):
             "status": "Armonía detectada. El compañero asiente y refuerza tu optimismo.",
         }
 
-    # Sad / Down
     if polarity < -0.05:
         return {
             "mood_name": "Sentimiento Negativo / Melancolía",
@@ -422,7 +470,6 @@ def evaluate_sentiment(text_es: str, polarity: float, subjectivity: float):
             "status": "Frecuencia baja detectada. Desplegando dosis de humor y calidez.",
         }
 
-    # Neutral
     return {
         "mood_name": "Sentimiento Neutral / Contemplativo",
         "emoji": "😐",
@@ -435,9 +482,9 @@ def evaluate_sentiment(text_es: str, polarity: float, subjectivity: float):
 
 
 # -----------------------------------------------------------------------------
-# 5. USER INTERFACE (No buttons required)
+# 6. USER INTERFACE (No buttons required)
 # -----------------------------------------------------------------------------
-st.markdown(
+render_clean_html(
     """
     <div style="text-align: center; margin-top: 10px; margin-bottom: 25px;">
         <span class="mono-subtitle">// SISTEMA INTERACTIVO DE ANÁLISIS DE SENTIMIENTO //</span>
@@ -446,8 +493,7 @@ st.markdown(
             Escribe en el campo de texto y pulsa Enter. El robot Lottie responderá automáticamente según tu emoción.
         </p>
     </div>
-    """,
-    unsafe_allow_html=True,
+    """
 )
 
 # Input Controls
@@ -478,16 +524,11 @@ with col_lang:
 
 # Real-Time Sentiment & Mood Computation
 if user_input and user_input.strip():
-    # 1. Translate to English for TextBlob accuracy
     english_translation = translate_phrase(user_input, source_lang="auto", target_lang="en")
     blob = TextBlob(english_translation)
     polarity_val = round(blob.sentiment.polarity, 2)
     subjectivity_val = round(blob.sentiment.subjectivity, 2)
-
-    # 2. Translate user phrase into selected target language
     multilingual_text = translate_phrase(user_input, source_lang="auto", target_lang=target_lang)
-
-    # 3. Determine mood & reaction
     mood_result = evaluate_sentiment(user_input, polarity_val, subjectivity_val)
 else:
     polarity_val = 0.0
@@ -504,75 +545,72 @@ else:
         "status": "Compañero en espera pasiva. Radar de sentimientos activo.",
     }
 
-# Prepare sliced animation
+# Sliced Lottie segment for the active state
 active_lottie = get_mood_animation_slice(base_animation, mood_result["marker"])
 
 
 # -----------------------------------------------------------------------------
-# 6. DUAL PANEL: LOTTIE COMPANION & TELEMETRY MONITOR
+# 7. DUAL PANEL: LOTTIE COMPANION & TELEMETRY MONITOR
 # -----------------------------------------------------------------------------
 col_visual, col_info = st.columns([1.1, 1], gap="large")
 
 with col_visual:
-    st.markdown('<div class="noir-card lottie-pedestal">', unsafe_allow_html=True)
+    render_clean_html(
+        f"""
+        <div class="lottie-pedestal">
+            <div style="font-family: 'Orbitron'; font-size: 0.8rem; letter-spacing: 2px; color: {mood_result['color']}; margin-bottom: 8px;">
+                ESTADO ACTIVO: {mood_result['marker'].upper()}
+            </div>
+        """
+    )
 
     if active_lottie:
-        # Uses st_lottie / st.lottie as demonstrated in your course slides
+        # Standard streamlit-lottie implementation from your slide
         st.lottie(
             active_lottie,
             width=350,
-            key=f"lottie_player_{mood_result['marker']}",
+            key=f"lottie_companion_{mood_result['marker']}",
         )
     else:
-        st.warning("⚠️ No se encontró 'graficos.json' o 'AI robo.json' en el directorio.")
+        st.warning("⚠️ Buscando 'graficos.json' o 'AI robo.json' en el directorio del script...")
 
-    st.markdown(
-        f"""
-        <div style="font-family: 'Orbitron'; font-size: 0.8rem; letter-spacing: 2px; color: {mood_result['color']}; margin-top: 8px;">
-            ESTADO ACTIVO: {mood_result['marker'].upper()}
-        </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+    render_clean_html("</div>")
 
 
 with col_info:
-    st.markdown(
-        f"""
-        <div class="noir-card" style="border-left: 4px solid {mood_result['color']};">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                <span style="color: {mood_result['color']}; font-family: 'Orbitron'; font-size: 0.85rem; font-weight: 700;">
-                    {mood_result['emoji']} TELEMETRÍA
-                </span>
-                <span style="font-family: 'JetBrains Mono'; font-size: 0.85rem; background: rgba(0,0,0,0.4); padding: 4px 10px; border-radius: 12px; border: 1px solid {mood_result['color']}; color: {mood_result['color']};">
-                    POLARIDAD: {polarity_val}
-                </span>
-                <span style="font-family: 'JetBrains Mono'; font-size: 0.85rem; background: rgba(0,0,0,0.4); padding: 4px 10px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1);">
-                    SUBJETIVIDAD: {subjectivity_val}
-                </span>
+    # Render telemetry card cleanly without Markdown 4-space code block bug
+    card_html = f"""
+    <div class="noir-card" style="border-left: 4px solid {mood_result['color']};">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+            <span style="color: {mood_result['color']}; font-family: 'Orbitron'; font-size: 0.85rem; font-weight: 700;">
+                {mood_result['emoji']} TELEMETRÍA
+            </span>
+            <span style="font-family: 'JetBrains Mono'; font-size: 0.85rem; background: rgba(0,0,0,0.4); padding: 4px 10px; border-radius: 12px; border: 1px solid {mood_result['color']}; color: {mood_result['color']};">
+                POLARIDAD: {polarity_val}
+            </span>
+            <span style="font-family: 'JetBrains Mono'; font-size: 0.85rem; background: rgba(0,0,0,0.4); padding: 4px 10px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1);">
+                SUBJETIVIDAD: {subjectivity_val}
+            </span>
+        </div>
+        <h2 style="font-size: 1.7rem; margin: 4px 0 8px 0; color: #ffffff;">
+            {mood_result['mood_name']}
+        </h2>
+        <p style="color: #8fa6c2; font-family: 'JetBrains Mono'; font-size: 0.85rem; margin-bottom: 16px;">
+            {mood_result['status']}
+        </p>
+        <div style="background: rgba(0,0,0,0.45); border-radius: 12px; padding: 16px; border: 1px dashed rgba(255,255,255,0.12); margin-bottom: 16px;">
+            <div style="font-family: 'Orbitron'; font-size: 0.8rem; color: {mood_result['color']}; font-weight: 700; margin-bottom: 6px;">
+                ⚡ {mood_result['protocol_name']}
             </div>
-
-            <h2 style="font-size: 1.7rem; margin: 4px 0 8px 0; color: #ffffff;">
-                {mood_result['mood_name']}
-            </h2>
-            <p style="color: #8fa6c2; font-family: 'JetBrains Mono'; font-size: 0.85rem; margin-bottom: 16px;">
-                {mood_result['status']}
-            </p>
-
-            <div style="background: rgba(0,0,0,0.45); border-radius: 12px; padding: 16px; border: 1px dashed rgba(255,255,255,0.12); margin-bottom: 16px;">
-                <div style="font-family: 'Orbitron'; font-size: 0.8rem; color: {mood_result['color']}; font-weight: 700; margin-bottom: 6px;">
-                    ⚡ {mood_result['protocol_name']}
-                </div>
-                <div style="font-size: 1rem; line-height: 1.5; color: #f5f8fc;">
-                    "{mood_result['action']}"
-                </div>
+            <div style="font-size: 1rem; line-height: 1.5; color: #f5f8fc;">
+                "{mood_result['action']}"
             </div>
-        """,
-        unsafe_allow_html=True,
-    )
+        </div>
+    </div>
+    """
+    render_clean_html(card_html)
 
-    # Voice TTS Player for companion response
+    # Voice TTS Player
     if user_input and user_input.strip():
         spoken_text = f"{mood_result['mood_name']}. {mood_result['action']}"
         audio_bytes = synthesize_speech(spoken_text, lang="es")
@@ -580,27 +618,23 @@ with col_info:
             st.caption("🔊 Voz Sintetizada del Compañero:")
             st.audio(audio_bytes, format="audio/mp3")
 
-    # Multilingual Translation Display
+    # Multilingual Output
     if multilingual_text:
-        st.markdown(
-            f"""
-            <div style="background: rgba(100, 210, 255, 0.05); border-radius: 12px; padding: 12px 16px; border: 1px solid rgba(100, 210, 255, 0.2); margin-top: 10px;">
-                <div style="font-family: 'JetBrains Mono'; font-size: 0.75rem; color: #64d2ff; letter-spacing: 1px;">
-                    TRADUCCIÓN EN TIEMPO REAL ({target_lang.upper()}):
-                </div>
-                <div style="font-family: 'JetBrains Mono'; font-size: 0.95rem; color: #ffffff; margin-top: 4px;">
-                    "{multilingual_text}"
-                </div>
+        translation_html = f"""
+        <div style="background: rgba(100, 210, 255, 0.05); border-radius: 12px; padding: 12px 16px; border: 1px solid rgba(100, 210, 255, 0.2); margin-top: 10px;">
+            <div style="font-family: 'JetBrains Mono'; font-size: 0.75rem; color: #64d2ff; letter-spacing: 1px;">
+                TRADUCCIÓN EN TIEMPO REAL ({target_lang.upper()}):
             </div>
-            """,
-            unsafe_allow_html=True,
-        )
-
-    st.markdown("</div>", unsafe_allow_html=True)
+            <div style="font-family: 'JetBrains Mono'; font-size: 0.95rem; color: #ffffff; margin-top: 4px;">
+                "{multilingual_text}"
+            </div>
+        </div>
+        """
+        render_clean_html(translation_html)
 
 
 # -----------------------------------------------------------------------------
-# 7. SIDEBAR: POLARITY & SUBJECTIVITY REFERENCE
+# 8. SIDEBAR: POLARITY & SUBJECTIVITY REFERENCE
 # -----------------------------------------------------------------------------
 with st.sidebar:
     st.markdown("### 📊 Polaridad y Subjetividad")
