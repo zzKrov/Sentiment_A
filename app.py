@@ -387,7 +387,7 @@ with chip_cols[1]:
 
 with chip_cols[2]:
     if st.button("⚠️ Mucho estrés", use_container_width=True):
-        set_quick_phrase("Tengo mucha ansiedad y alerta por esta situación.)
+        set_quick_phrase("Tengo mucha ansiedad y alerta por esta situación.")
         st.rerun()
 
 with chip_cols[3]:
