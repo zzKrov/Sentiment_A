@@ -376,27 +376,27 @@ render_clean_html(
 
 chip_cols = st.columns(5)
 with chip_cols[0]:
-    if st.button("🚀 ¡Gané y triunfé!", use_container_width=True, help="Activa JUMP (Gradiente)"):
+    if st.button("🚀 ¡Gané y triunfé!", use_container_width=True"):
         set_quick_phrase("¡Gané el concurso y fue un logro increíble!")
         st.rerun()
 
 with chip_cols[1]:
-    if st.button("😊 Todo está bien", use_container_width=True, help="Activa YES (Verde)"):
+    if st.button("😊 Todo está bien", use_container_width=True"):
         set_quick_phrase("Todo está bien hoy.")
         st.rerun()
 
 with chip_cols[2]:
-    if st.button("⚠️ Mucho estrés", use_container_width=True, help="Activa ALERT (Amarillo)"):
+    if st.button("⚠️ Mucho estrés", use_container_width=True"):
         set_quick_phrase("Tengo mucha ansiedad y alerta por esta situación.")
         st.rerun()
 
 with chip_cols[3]:
-    if st.button("🛑 Es un desastre", use_container_width=True, help="Activa NO (Rojo)"):
+    if st.button("🛑 Es un desastre", use_container_width=True"):
         set_quick_phrase("Todo es un pésimo desastre y tengo mucha ira")
         st.rerun()
 
 with chip_cols[4]:
-    if st.button("🔮 Pensando dudas", use_container_width=True, help="Activa THINKING (Púrpura)"):
+    if st.button("🔮 Pensando dudas", use_container_width=True"):
         set_quick_phrase("Estoy pensando y analizando qué decisión tomar.")
         st.rerun()
 
