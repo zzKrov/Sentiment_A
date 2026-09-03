@@ -11,7 +11,7 @@ from streamlit_lottie import st_lottie
 from textblob import TextBlob
 from gtts import gTTS
 
-# Compatibilidad con la sintaxis de tus diapositivas
+# Compatibilidad con la sintaxis de las diapositivas
 st.lottie = st_lottie
 
 # -----------------------------------------------------------------------------
@@ -54,7 +54,7 @@ def get_speech_audio(text: str, voice_name: str = "es-ES-AlvaroNeural") -> bytes
     if not text or not text.strip():
         return b""
 
-    # 1. Voz masculina neural (edge-tts)
+    # Voz masculina neural (edge-tts)
     if HAS_EDGE_TTS:
         try:
             async def _synthesize():
@@ -71,7 +71,7 @@ def get_speech_audio(text: str, voice_name: str = "es-ES-AlvaroNeural") -> bytes
         except Exception:
             pass
 
-    # 2. Respaldo gTTS
+    # Respaldo con gTTS
     try:
         tts = gTTS(text=text, lang="es", tld="es", slow=False)
         fp = BytesIO()
@@ -282,7 +282,7 @@ def analyze_conversation(user_text: str, polarity: float, subjectivity: float):
             "marker": "jump",
             "accent_color": "#00f0ff",
             "is_gradient": True,
-            "glow": "rgba(255, 0, 127, 0.45)",
+            "glow": "rgba(255, 0, 127, 0.55)",
             "message": random.choice(MOTIVACIONES),
         }
 
@@ -295,7 +295,7 @@ def analyze_conversation(user_text: str, polarity: float, subjectivity: float):
             "marker": "yes",
             "accent_color": "#00ff88",  # Verde
             "is_gradient": False,
-            "glow": "rgba(0, 255, 136, 0.45)",
+            "glow": "rgba(0, 255, 136, 0.5)",
             "message": random.choice(MOTIVACIONES),
         }
 
@@ -308,7 +308,7 @@ def analyze_conversation(user_text: str, polarity: float, subjectivity: float):
             "marker": "alert",
             "accent_color": "#ffd600",  # Amarillo
             "is_gradient": False,
-            "glow": "rgba(255, 214, 0, 0.45)",
+            "glow": "rgba(255, 214, 0, 0.5)",
             "message": random.choice(CONSEJOS_CALMA),
         }
 
@@ -321,7 +321,7 @@ def analyze_conversation(user_text: str, polarity: float, subjectivity: float):
             "marker": "no",
             "accent_color": "#ff3344",  # Rojo
             "is_gradient": False,
-            "glow": "rgba(255, 51, 68, 0.45)",
+            "glow": "rgba(255, 51, 68, 0.5)",
             "message": f"Comprendo que la situación no sea buena. Para sacarte aunque sea una sonrisa, mira este chiste:\n\n{random.choice(CHISTES)}",
         }
 
@@ -333,13 +333,13 @@ def analyze_conversation(user_text: str, polarity: float, subjectivity: float):
         "marker": "thinking",
         "accent_color": "#bf5af2",  # Púrpura
         "is_gradient": False,
-        "glow": "rgba(191, 90, 242, 0.45)",
+        "glow": "rgba(191, 90, 242, 0.5)",
         "message": random.choice(CONVERSACION_NEUTRAL),
     }
 
 
 # -----------------------------------------------------------------------------
-# ESTADO DE SESIÓN (Para pruebas rápidas)
+# ESTADO DE SESIÓN (Para chips interactivos)
 # -----------------------------------------------------------------------------
 if "phrase_input" not in st.session_state:
     st.session_state.phrase_input = ""
@@ -448,13 +448,13 @@ else:
         "marker": "idle",
         "accent_color": "#00f0ff",
         "is_gradient": False,
-        "glow": "rgba(0, 240, 255, 0.4)",
+        "glow": "rgba(0, 240, 255, 0.45)",
         "message": "Cuéntame lo que estás sintiendo o cómo estuvo tu día. Aquí estaré listo para acompañarte y responderte.",
     }
 
 active_lottie = get_mood_slice(base_animation, response["marker"])
 
-# Estilos de borde con soporte para gradientes
+# Estilos de borde con soporte para gradientes dinámicos
 if response["is_gradient"]:
     border_css = """
     border: 2px solid transparent !important;
@@ -469,7 +469,7 @@ else:
 
 
 # -----------------------------------------------------------------------------
-# ESTÉTICA "OVER THE TOP" // CSS REACTIVO & CANVAS DE CONSTELACIONES
+# SOBRESATURACIÓN VISUAL // CSS DINÁMICO & ELEMENTOS 3D
 # -----------------------------------------------------------------------------
 NOIR_FULL_FX = r"""
 <style>
@@ -480,6 +480,7 @@ NOIR_FULL_FX = r"""
     --mood-glow: __GLOW__;
 }
 
+/* Transparencia total para dejar pasar el fondo animado */
 html, body, [data-testid="stAppViewContainer"] {
     background-color: #05070c !important;
     color: #e6edf5 !important;
@@ -496,16 +497,53 @@ html, body, [data-testid="stAppViewContainer"] {
     padding-top: 1.8rem !important;
     padding-bottom: 2.5rem !important;
     margin: 0 auto !important;
+    position: relative;
+    z-index: 2;
 }
 
-#noir-canvas-bg {
+/* Suelo 3D Cyber-Grid en perspectiva */
+.cyber-grid-floor {
     position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    z-index: 0;
+    bottom: 0;
+    left: -50%;
+    width: 200%;
+    height: 48vh;
+    background-image:
+        linear-gradient(to right, rgba(100, 210, 255, 0.08) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(100, 210, 255, 0.08) 1px, transparent 1px);
+    background-size: 50px 50px;
+    transform: perspective(400px) rotateX(65deg);
+    animation: gridMove 14s linear infinite;
+    z-index: 1;
     pointer-events: none;
+    opacity: 0.55;
+    mask-image: linear-gradient(to top, rgba(0,0,0,1) 0%, rgba(0,0,0,0) 85%);
+    -webkit-mask-image: linear-gradient(to top, rgba(0,0,0,1) 0%, rgba(0,0,0,0) 85%);
+}
+
+@keyframes gridMove {
+    0% { background-position: 0 0; }
+    100% { background-position: 0 50px; }
+}
+
+/* Nebulosa ambiental de luz reactiva */
+.mood-nebula {
+    position: fixed;
+    top: 25%;
+    left: 28%;
+    width: 650px;
+    height: 650px;
+    border-radius: 50%;
+    background: radial-gradient(circle, var(--mood-glow) 0%, transparent 70%);
+    filter: blur(85px);
+    z-index: 1;
+    pointer-events: none;
+    animation: nebulaPulse 5s ease-in-out infinite alternate;
+}
+
+@keyframes nebulaPulse {
+    0% { transform: scale(0.9) translate(-15px, -15px); opacity: 0.4; }
+    100% { transform: scale(1.15) translate(15px, 15px); opacity: 0.75; }
 }
 
 .title-glow {
@@ -521,20 +559,21 @@ html, body, [data-testid="stAppViewContainer"] {
     transition: all 0.5s ease;
 }
 
-/* Tarjeta izquierda (diálogo) */
+/* Tarjeta izquierda (diálogo) con hover sobresaturado */
 .card-noir-dialogue {
     position: relative;
     border-radius: 24px;
     padding: 26px;
     backdrop-filter: blur(20px);
     box-shadow: 0 15px 45px rgba(0, 0, 0, 0.8), 0 0 30px var(--mood-glow), inset 0 0 20px var(--mood-glow);
-    transition: transform 0.4s ease, box-shadow 0.4s ease;
+    transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
     __BORDER_CSS__
 }
 
 .card-noir-dialogue:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 20px 55px rgba(0, 0, 0, 0.9), 0 0 45px var(--mood-glow), inset 0 0 25px var(--mood-glow);
+    transform: translateY(-6px) scale(1.01);
+    box-shadow: 0 25px 65px rgba(0, 0, 0, 0.9), 0 0 55px var(--mood-glow), inset 0 0 30px var(--mood-glow);
+    border-color: #ffffff !important;
 }
 
 /* CONTENEDOR DERECHO NATIVO: El robot queda 100% adentro del cuadro */
@@ -544,13 +583,14 @@ div[data-testid="stVerticalBlockBorderWrapper"] {
     padding: 20px 20px 16px 20px !important;
     backdrop-filter: blur(20px) !important;
     box-shadow: 0 15px 45px rgba(0, 0, 0, 0.8), 0 0 35px var(--mood-glow), inset 0 0 25px var(--mood-glow) !important;
-    transition: transform 0.4s ease, box-shadow 0.4s ease !important;
+    transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1) !important;
     __BORDER_CSS__
 }
 
 div[data-testid="stVerticalBlockBorderWrapper"]:hover {
-    transform: translateY(-3px) !important;
-    box-shadow: 0 20px 55px rgba(0, 0, 0, 0.9), 0 0 50px var(--mood-glow), inset 0 0 30px var(--mood-glow) !important;
+    transform: translateY(-6px) scale(1.01) !important;
+    box-shadow: 0 25px 65px rgba(0, 0, 0, 0.9), 0 0 60px var(--mood-glow), inset 0 0 35px var(--mood-glow) !important;
+    border-color: #ffffff !important;
 }
 
 /* Centrado y resplandor para el widget de Lottie */
@@ -563,7 +603,7 @@ div[data-testid="stLottie"], iframe[title="streamlit_lottie.st_lottie"] {
     transition: filter 0.5s ease;
 }
 
-/* Botones rápidos interactivos */
+/* Botones rápidos interactivos con microanimación */
 .stButton > button {
     background: rgba(13, 19, 33, 0.85) !important;
     border: 1px solid rgba(100, 210, 255, 0.25) !important;
@@ -578,9 +618,10 @@ div[data-testid="stLottie"], iframe[title="streamlit_lottie.st_lottie"] {
 
 .stButton > button:hover {
     border-color: var(--mood-color) !important;
-    box-shadow: 0 0 25px var(--mood-glow), inset 0 0 10px var(--mood-glow) !important;
-    transform: translateY(-2px) scale(1.02) !important;
+    box-shadow: 0 0 30px var(--mood-glow), inset 0 0 15px var(--mood-glow) !important;
+    transform: translateY(-3px) scale(1.05) !important;
     color: #ffffff !important;
+    text-shadow: 0 0 10px var(--mood-color) !important;
 }
 
 /* Campo de entrada */
@@ -596,7 +637,7 @@ div[data-testid="stLottie"], iframe[title="streamlit_lottie.st_lottie"] {
 
 .stTextInput input:focus {
     border-color: var(--mood-color) !important;
-    box-shadow: 0 0 25px var(--mood-glow), inset 0 0 12px var(--mood-glow) !important;
+    box-shadow: 0 0 28px var(--mood-glow), inset 0 0 14px var(--mood-glow) !important;
 }
 
 /* Pedestal Holográfico 3D bajo el robot */
@@ -628,7 +669,7 @@ div[data-testid="stLottie"], iframe[title="streamlit_lottie.st_lottie"] {
     height: 48px;
     border-radius: 50%;
     border: 2px dashed var(--mood-color);
-    box-shadow: 0 0 20px var(--mood-color), inset 0 0 10px var(--mood-color);
+    box-shadow: 0 0 22px var(--mood-color), inset 0 0 10px var(--mood-color);
     animation: spinClockwise 10s linear infinite;
     opacity: 0.85;
 }
@@ -639,7 +680,7 @@ div[data-testid="stLottie"], iframe[title="streamlit_lottie.st_lottie"] {
     height: 30px;
     border-radius: 50%;
     border: 1.5px solid var(--mood-color);
-    box-shadow: 0 0 15px var(--mood-color);
+    box-shadow: 0 0 16px var(--mood-color);
     animation: spinCounterClockwise 6s linear infinite;
     opacity: 0.95;
 }
@@ -701,169 +742,227 @@ div[data-testid="stLottie"], iframe[title="streamlit_lottie.st_lottie"] {
     border-radius: 50%;
     background: #ffffff;
     border: 3px solid var(--mood-color);
-    box-shadow: 0 0 16px var(--mood-color);
+    box-shadow: 0 0 18px var(--mood-color);
     transition: left 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 </style>
 
-<canvas id="noir-canvas-bg"></canvas>
+<!-- Elementos visuales 3D y de fondo -->
+<div class="cyber-grid-floor"></div>
+<div class="mood-nebula"></div>
+""".replace("__COLOR__", response["accent_color"]).replace("__GLOW__", response["glow"]).replace("__BORDER_CSS__", border_css)
 
-<script>
-(function() {
-    const canvas = document.getElementById('noir-canvas-bg');
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    let w = canvas.width = window.innerWidth;
-    let h = canvas.height = window.innerHeight;
+render_clean_html(NOIR_FULL_FX)
 
-    window.addEventListener('resize', () => {
-        w = canvas.width = window.innerWidth;
-        h = canvas.height = window.innerHeight;
-    });
 
-    const particles = [];
-    const trail = [];
-    const shockwaves = [];
-    const mouse = { x: -1000, y: -1000 };
+# -----------------------------------------------------------------------------
+# INYECCIÓN DEL SCRIPT INTERACTIVO (MOUSE, CHISPAS, ONDAS DE CHOQUE Y CONSTELACIONES)
+# -----------------------------------------------------------------------------
+st.components.v1.html(
+    r"""
+    <script>
+    (function() {
+        let doc = document;
+        let win = window;
+        try {
+            if (window.parent && window.parent.document) {
+                doc = window.parent.document;
+                win = window.parent;
+            }
+        } catch(e) {}
 
-    window.addEventListener('mousemove', (e) => {
-        mouse.x = e.clientX;
-        mouse.y = e.clientY;
-        for (let i = 0; i < 2; i++) {
-            trail.push({
-                x: e.clientX + (Math.random() - 0.5) * 6,
-                y: e.clientY + (Math.random() - 0.5) * 6,
-                size: Math.random() * 2.8 + 1,
-                alpha: 0.9,
-                decay: Math.random() * 0.025 + 0.015,
-                vx: (Math.random() - 0.5) * 1.2,
-                vy: (Math.random() - 0.5) * 1.2
+        // Canvas persistente en la ventana principal
+        let canvas = doc.getElementById('noir-cyber-canvas');
+        if (!canvas) {
+            canvas = doc.createElement('canvas');
+            canvas.id = 'noir-cyber-canvas';
+            canvas.style.position = 'fixed';
+            canvas.style.top = '0';
+            canvas.style.left = '0';
+            canvas.style.width = '100vw';
+            canvas.style.height = '100vh';
+            canvas.style.zIndex = '0';
+            canvas.style.pointerEvents = 'none';
+            doc.body.prepend(canvas);
+        }
+
+        const ctx = canvas.getContext('2d');
+        let w = canvas.width = win.innerWidth;
+        let h = canvas.height = win.innerHeight;
+
+        win.addEventListener('resize', () => {
+            w = canvas.width = win.innerWidth;
+            h = canvas.height = win.innerHeight;
+        });
+
+        const particles = [];
+        const trail = [];
+        const shockwaves = [];
+        let mouse = { x: -1000, y: -1000 };
+
+        // 1. Estela de chispas reactiva al mouse
+        win.addEventListener('mousemove', (e) => {
+            mouse.x = e.clientX;
+            mouse.y = e.clientY;
+            for (let i = 0; i < 3; i++) {
+                trail.push({
+                    x: e.clientX + (Math.random() - 0.5) * 8,
+                    y: e.clientY + (Math.random() - 0.5) * 8,
+                    size: Math.random() * 3 + 1.2,
+                    alpha: 1.0,
+                    decay: Math.random() * 0.025 + 0.015,
+                    vx: (Math.random() - 0.5) * 2,
+                    vy: (Math.random() - 0.5) * 2 - 0.5
+                });
+            }
+        });
+
+        // 2. Ondas de choque y fuegos artificiales al hacer clic
+        win.addEventListener('click', (e) => {
+            for (let i = 0; i < 16; i++) {
+                const angle = (Math.PI * 2 / 16) * i;
+                const spd = Math.random() * 4 + 3;
+                trail.push({
+                    x: e.clientX,
+                    y: e.clientY,
+                    size: Math.random() * 4 + 2,
+                    alpha: 1,
+                    decay: 0.02,
+                    vx: Math.cos(angle) * spd,
+                    vy: Math.sin(angle) * spd
+                });
+            }
+            shockwaves.push({
+                x: e.clientX,
+                y: e.clientY,
+                radius: 10,
+                maxRadius: 220,
+                alpha: 1
+            });
+        });
+
+        // Partículas del espacio cyber
+        for (let i = 0; i < 65; i++) {
+            particles.push({
+                x: Math.random() * w,
+                y: Math.random() * h,
+                r: Math.random() * 2 + 0.7,
+                vx: (Math.random() - 0.5) * 0.4,
+                vy: (Math.random() - 0.5) * 0.4,
+                alpha: Math.random() * 0.6 + 0.3
             });
         }
-    });
 
-    // Shockwave interactiva al hacer clic
-    window.addEventListener('click', (e) => {
-        shockwaves.push({
-            x: e.clientX,
-            y: e.clientY,
-            radius: 5,
-            maxRadius: 180,
-            alpha: 1
-        });
-    });
+        function getThemeColor() {
+            try {
+                const col = doc.documentElement.style.getPropertyValue('--mood-color');
+                if (col && col.trim()) return col.trim();
+            } catch(e) {}
+            return '#00f0ff';
+        }
 
-    for (let i = 0; i < 55; i++) {
-        particles.push({
-            x: Math.random() * w,
-            y: Math.random() * h,
-            r: Math.random() * 1.8 + 0.6,
-            vx: (Math.random() - 0.5) * 0.35,
-            vy: (Math.random() - 0.5) * 0.35,
-            alpha: Math.random() * 0.5 + 0.3
-        });
-    }
+        function draw() {
+            ctx.clearRect(0, 0, w, h);
+            const col = getThemeColor();
 
-    function animate() {
-        ctx.clearRect(0, 0, w, h);
+            // Dibujar constelaciones
+            for (let i = 0; i < particles.length; i++) {
+                const p = particles[i];
+                p.x += p.vx;
+                p.y += p.vy;
+                if (p.x < 0) p.x = w;
+                if (p.x > w) p.x = 0;
+                if (p.y < 0) p.y = h;
+                if (p.y > h) p.y = 0;
 
-        const currentThemeColor = getComputedStyle(document.documentElement).getPropertyValue('--mood-color').trim() || '#00e5ff';
+                // Enlace con el mouse
+                const dm = Math.hypot(p.x - mouse.x, p.y - mouse.y);
+                if (dm < 140) {
+                    ctx.beginPath();
+                    ctx.moveTo(p.x, p.y);
+                    ctx.lineTo(mouse.x, mouse.y);
+                    ctx.strokeStyle = col;
+                    ctx.globalAlpha = (1 - dm / 140) * 0.45;
+                    ctx.lineWidth = 1;
+                    ctx.stroke();
+                    ctx.globalAlpha = 1;
+                }
 
-        // 1. Constelaciones vivas
-        for (let i = 0; i < particles.length; i++) {
-            const p = particles[i];
-            p.x += p.vx;
-            p.y += p.vy;
-            if (p.x < 0) p.x = w;
-            if (p.x > w) p.x = 0;
-            if (p.y < 0) p.y = h;
-            if (p.y > h) p.y = 0;
+                // Enlace entre nodos
+                for (let j = i + 1; j < particles.length; j++) {
+                    const p2 = particles[j];
+                    const d = Math.hypot(p.x - p2.x, p.y - p2.y);
+                    if (d < 120) {
+                        ctx.beginPath();
+                        ctx.moveTo(p.x, p.y);
+                        ctx.lineTo(p2.x, p2.y);
+                        ctx.strokeStyle = col;
+                        ctx.globalAlpha = (1 - d / 120) * 0.25;
+                        ctx.lineWidth = 0.8;
+                        ctx.stroke();
+                        ctx.globalAlpha = 1;
+                    }
+                }
 
-            const distMouse = Math.hypot(p.x - mouse.x, p.y - mouse.y);
-            if (distMouse < 130) {
                 ctx.beginPath();
-                ctx.moveTo(p.x, p.y);
-                ctx.lineTo(mouse.x, mouse.y);
-                ctx.strokeStyle = currentThemeColor;
-                ctx.globalAlpha = (1 - distMouse / 130) * 0.35;
-                ctx.lineWidth = 0.8;
+                ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+                ctx.fillStyle = col;
+                ctx.shadowBlur = 10;
+                ctx.shadowColor = col;
+                ctx.globalAlpha = p.alpha;
+                ctx.fill();
+                ctx.globalAlpha = 1;
+            }
+
+            // Ondas de choque
+            for (let i = shockwaves.length - 1; i >= 0; i--) {
+                const sw = shockwaves[i];
+                sw.radius += 5;
+                sw.alpha -= 0.022;
+                if (sw.alpha <= 0 || sw.radius >= sw.maxRadius) {
+                    shockwaves.splice(i, 1);
+                    continue;
+                }
+                ctx.beginPath();
+                ctx.arc(sw.x, sw.y, sw.radius, 0, Math.PI * 2);
+                ctx.strokeStyle = col;
+                ctx.globalAlpha = sw.alpha * 0.8;
+                ctx.lineWidth = 2.5;
+                ctx.shadowBlur = 20;
+                ctx.shadowColor = col;
                 ctx.stroke();
                 ctx.globalAlpha = 1;
             }
 
-            for (let j = i + 1; j < particles.length; j++) {
-                const p2 = particles[j];
-                const d = Math.hypot(p.x - p2.x, p.y - p2.y);
-                if (d < 110) {
-                    ctx.beginPath();
-                    ctx.moveTo(p.x, p.y);
-                    ctx.lineTo(p2.x, p2.y);
-                    ctx.strokeStyle = currentThemeColor;
-                    ctx.globalAlpha = (1 - d / 110) * 0.2;
-                    ctx.lineWidth = 0.6;
-                    ctx.stroke();
-                    ctx.globalAlpha = 1;
+            // Chispas del cursor
+            for (let i = trail.length - 1; i >= 0; i--) {
+                const t = trail[i];
+                t.x += t.vx;
+                t.y += t.vy;
+                t.alpha -= t.decay;
+                if (t.alpha <= 0) {
+                    trail.splice(i, 1);
+                    continue;
                 }
+                ctx.beginPath();
+                ctx.arc(t.x, t.y, t.size, 0, Math.PI * 2);
+                ctx.fillStyle = col;
+                ctx.globalAlpha = t.alpha;
+                ctx.shadowBlur = 14;
+                ctx.shadowColor = col;
+                ctx.fill();
+                ctx.globalAlpha = 1;
             }
 
-            ctx.beginPath();
-            ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-            ctx.fillStyle = currentThemeColor;
-            ctx.globalAlpha = p.alpha;
-            ctx.shadowBlur = 8;
-            ctx.shadowColor = currentThemeColor;
-            ctx.fill();
-            ctx.globalAlpha = 1;
+            win.requestAnimationFrame(draw);
         }
-
-        // 2. Ondas de choque (Shockwaves)
-        for (let i = shockwaves.length - 1; i >= 0; i--) {
-            const sw = shockwaves[i];
-            sw.radius += 4;
-            sw.alpha -= 0.02;
-            if (sw.alpha <= 0 || sw.radius >= sw.maxRadius) {
-                shockwaves.splice(i, 1);
-                continue;
-            }
-            ctx.beginPath();
-            ctx.arc(sw.x, sw.y, sw.radius, 0, Math.PI * 2);
-            ctx.strokeStyle = currentThemeColor;
-            ctx.globalAlpha = sw.alpha * 0.7;
-            ctx.lineWidth = 2;
-            ctx.shadowBlur = 15;
-            ctx.shadowColor = currentThemeColor;
-            ctx.stroke();
-            ctx.globalAlpha = 1;
-        }
-
-        // 3. Estela del cursor
-        for (let i = trail.length - 1; i >= 0; i--) {
-            const t = trail[i];
-            t.x += t.vx;
-            t.y += t.vy;
-            t.alpha -= t.decay;
-            if (t.alpha <= 0) {
-                trail.splice(i, 1);
-                continue;
-            }
-            ctx.beginPath();
-            ctx.arc(t.x, t.y, t.size, 0, Math.PI * 2);
-            ctx.fillStyle = currentThemeColor;
-            ctx.globalAlpha = t.alpha;
-            ctx.shadowBlur = 12;
-            ctx.shadowColor = currentThemeColor;
-            ctx.fill();
-            ctx.globalAlpha = 1;
-        }
-
-        requestAnimationFrame(animate);
-    }
-    animate();
-})();
-</script>
-""".replace("__COLOR__", response["accent_color"]).replace("__GLOW__", response["glow"]).replace("__BORDER_CSS__", border_css)
-
-render_clean_html(NOIR_FULL_FX)
+        draw();
+    })();
+    </script>
+    """,
+    height=0,
+    width=0,
+)
 
 
 # -----------------------------------------------------------------------------
@@ -950,7 +1049,7 @@ with col_dialogo:
 # COLUMNA DERECHA: GRÁFICO LOTTIE 100% CONTENIDO EN SU CUADRO
 with col_robo:
     with st.container(border=True):
-        # Cabecera de estado
+        # Cabecera de telemetría del robot
         render_clean_html(
             f"""
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; width: 100%;">
@@ -964,7 +1063,7 @@ with col_robo:
             """
         )
 
-        # Gráfico del robot dentro del marco
+        # Gráfico del robot
         if active_lottie:
             st.lottie(
                 active_lottie,
@@ -975,7 +1074,7 @@ with col_robo:
         else:
             st.info("Buscando animación Lottie...")
 
-        # Pedestal Holográfico 3D bajo el robot
+        # Pedestal Holográfico 3D (anillos giratorios + haz de luz bajo el robot)
         render_clean_html(
             """
             <div class="holo-base">
