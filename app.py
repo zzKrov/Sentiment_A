@@ -8,10 +8,10 @@ from streamlit_lottie import st_lottie
 from textblob import TextBlob
 from gtts import gTTS
 
-# Expose st.lottie alias matching your course slide syntax
+# Compatibilidad con la sintaxis st.lottie
 st.lottie = st_lottie
 
-# Translation engine with robust fallback for Python 3.11
+# Motores de traducción con soporte para Python 3.11
 try:
     from deep_translator import GoogleTranslator
     HAS_DEEP = True
@@ -26,36 +26,32 @@ except Exception:
 
 
 # -----------------------------------------------------------------------------
-# 1. HELPER: CLEAN HTML RENDERER (ELIMINATES MARKDOWN CODE-SNIPPET BUG)
+# 1. RENDERIZADOR HTML LIMPIO (Evita bloques de código en Markdown)
 # -----------------------------------------------------------------------------
 def render_clean_html(html_str: str):
-    """
-    Strips all leading whitespace and empty lines so CommonMark
-    NEVER mistakes indented HTML for a 4-space code block.
-    """
+    """Limpia la indentación para que Streamlit nunca lo interprete como bloque de código."""
     clean = "".join(line.strip() for line in html_str.splitlines() if line.strip())
     st.markdown(clean, unsafe_allow_html=True)
 
 
 # -----------------------------------------------------------------------------
-# 2. PAGE CONFIGURATION & GLOWING NOIR ATMOSPHERE
+# 2. CONFIGURACIÓN Y ESTÉTICA GLOWING NOIR
 # -----------------------------------------------------------------------------
 st.set_page_config(
-    page_title="NOIR.AI // Emotion Companion",
+    page_title="Compañero Emocional",
     page_icon="🤖",
     layout="wide",
     initial_sidebar_state="collapsed",
 )
 
-# Raw string prevents any Python 3.11 curly brace syntax errors
-NOIR_ATMOSPHERE_HTML = r"""
+NOIR_STYLE = r"""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=JetBrains+Mono:wght@300;400;600&family=Syne:wght@400;600;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
 
 html, body, [data-testid="stAppViewContainer"] {
     background-color: #05070c !important;
-    color: #e4edf8 !important;
-    font-family: 'Syne', sans-serif !important;
+    color: #e6edf5 !important;
+    font-family: 'Plus Jakarta Sans', sans-serif !important;
     overflow-x: hidden;
 }
 
@@ -63,18 +59,7 @@ html, body, [data-testid="stAppViewContainer"] {
     background: transparent !important;
 }
 
-/* CRT Scanline effect */
-[data-testid="stAppViewContainer"]::before {
-    content: " ";
-    position: fixed;
-    top: 0; left: 0; bottom: 0; right: 0;
-    background: linear-gradient(rgba(18, 16, 26, 0) 50%, rgba(0, 0, 0, 0.3) 50%);
-    background-size: 100% 4px;
-    z-index: 1;
-    pointer-events: none;
-    opacity: 0.45;
-}
-
+/* Partículas interactivas de fondo */
 #noir-canvas-bg {
     position: fixed;
     top: 0;
@@ -85,62 +70,47 @@ html, body, [data-testid="stAppViewContainer"] {
     pointer-events: none;
 }
 
-.orbitron-title {
-    font-family: 'Orbitron', monospace;
-    font-size: 2.5rem;
-    font-weight: 900;
+.title-glow {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 2.3rem;
+    font-weight: 800;
     letter-spacing: 2px;
     background: linear-gradient(135deg, #ffffff 10%, #64d2ff 60%, #0077ff 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
-    margin-bottom: 4px;
+    margin-bottom: 6px;
 }
 
-.mono-subtitle {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 0.85rem;
-    letter-spacing: 3px;
-    color: #64d2ff;
-    text-shadow: 0 0 10px rgba(100, 210, 255, 0.5);
-    text-transform: uppercase;
-}
-
-.noir-card {
-    background: rgba(11, 15, 25, 0.75);
-    border: 1px solid rgba(100, 210, 255, 0.15);
-    border-radius: 18px;
-    padding: 24px;
-    backdrop-filter: blur(18px);
-    -webkit-backdrop-filter: blur(18px);
-    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.85), inset 0 0 20px rgba(100, 210, 255, 0.03);
+.card-noir {
+    background: rgba(13, 18, 30, 0.75);
+    border: 1px solid rgba(100, 210, 255, 0.18);
+    border-radius: 20px;
+    padding: 26px;
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.7);
     margin-bottom: 20px;
-    transition: transform 0.3s ease, border-color 0.3s ease;
 }
 
-.noir-card:hover {
-    border-color: rgba(100, 210, 255, 0.35);
-    transform: translateY(-2px);
-}
-
-.lottie-pedestal {
+.robot-container {
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     background: radial-gradient(circle at center, rgba(100, 210, 255, 0.08) 0%, rgba(5, 7, 12, 0) 70%);
-    border: 1px solid rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(100, 210, 255, 0.12);
     border-radius: 20px;
-    padding: 16px;
-    min-height: 400px;
+    padding: 20px;
+    min-height: 380px;
 }
 
-/* Force Streamlit Lottie widget to center and glow */
-iframe[title="streamlit_lottie.st_lottie"], div[data-testid="stLottie"] {
+/* Centrado y resplandor para el widget de Lottie */
+div[data-testid="stLottie"], iframe[title="streamlit_lottie.st_lottie"] {
     display: flex !important;
     justify-content: center !important;
     align-items: center !important;
     margin: 0 auto !important;
-    filter: drop-shadow(0 0 25px rgba(0, 229, 255, 0.25));
+    filter: drop-shadow(0 0 25px rgba(0, 229, 255, 0.35));
 }
 
 .stTextInput input {
@@ -148,10 +118,8 @@ iframe[title="streamlit_lottie.st_lottie"], div[data-testid="stLottie"] {
     border: 1px solid rgba(100, 210, 255, 0.25) !important;
     border-radius: 14px !important;
     color: #ffffff !important;
-    font-family: 'JetBrains Mono', monospace !important;
     font-size: 1.05rem !important;
     padding: 14px 18px !important;
-    box-shadow: inset 0 0 12px rgba(0, 0, 0, 0.7) !important;
 }
 
 .stTextInput input:focus {
@@ -192,13 +160,13 @@ iframe[title="streamlit_lottie.st_lottie"], div[data-testid="stLottie"] {
         }
     });
 
-    for (let i = 0; i < 60; i++) {
+    for (let i = 0; i < 50; i++) {
         particles.push({
             x: Math.random() * w,
             y: Math.random() * h,
-            r: Math.random() * 1.6 + 0.4,
-            vx: (Math.random() - 0.5) * 0.25,
-            vy: (Math.random() - 0.5) * 0.25,
+            r: Math.random() * 1.5 + 0.5,
+            vx: (Math.random() - 0.5) * 0.2,
+            vy: (Math.random() - 0.5) * 0.2,
             alpha: Math.random() * 0.5 + 0.2
         });
     }
@@ -216,7 +184,7 @@ iframe[title="streamlit_lottie.st_lottie"], div[data-testid="stLottie"] {
 
             ctx.beginPath();
             ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-            ctx.fillStyle = "rgba(100, 210, 255, " + (p.alpha * 0.35) + ")";
+            ctx.fillStyle = "rgba(100, 210, 255, " + (p.alpha * 0.3) + ")";
             ctx.shadowBlur = 6;
             ctx.shadowColor = "#64d2ff";
             ctx.fill();
@@ -233,7 +201,7 @@ iframe[title="streamlit_lottie.st_lottie"], div[data-testid="stLottie"] {
             }
             ctx.beginPath();
             ctx.arc(t.x, t.y, t.size, 0, Math.PI * 2);
-            ctx.fillStyle = "rgba(0, 240, 255, " + (t.alpha * 0.65) + ")";
+            ctx.fillStyle = "rgba(0, 240, 255, " + (t.alpha * 0.6) + ")";
             ctx.shadowBlur = 10;
             ctx.shadowColor = "#00f0ff";
             ctx.fill();
@@ -245,86 +213,107 @@ iframe[title="streamlit_lottie.st_lottie"], div[data-testid="stLottie"] {
 </script>
 """
 
-render_clean_html(NOIR_ATMOSPHERE_HTML)
+render_clean_html(NOIR_STYLE)
 
 
 # -----------------------------------------------------------------------------
-# 3. ROBUST LOTTIE LOADER (RESOLVES STREAMLIT CLOUD DIRECTORY ISSUES)
+# 3. CARGA DE ARCHIVO Y ELIMINACIÓN DE BOTONES DEL LOTTIE
 # -----------------------------------------------------------------------------
 @st.cache_data
-def load_lottie_source():
+def load_and_clean_lottie():
     """
-    Searches both script location (__file__) and current working directory (cwd)
-    to guarantee file discovery regardless of Streamlit Cloud mount paths.
+    Busca el archivo de animación en la ruta del script y en el directorio de trabajo,
+    y desactiva las capas de botones que contiene el JSON original.
     """
     search_dirs = []
     try:
-        script_dir = os.path.dirname(os.path.abspath(__file__))
-        search_dirs.append(script_dir)
+        search_dirs.append(os.path.dirname(os.path.abspath(__file__)))
     except Exception:
         pass
     search_dirs.append(os.getcwd())
     search_dirs.append(".")
 
-    candidate_names = [
+    filenames = [
         "AI robo.json",
         "graficos.json",
         "ai robo.json",
         "AI_robo.json",
         "ai_robo.json",
-        "grafico.json",
         "robot.json",
     ]
 
-    # Direct filename search
+    loaded_json = None
     for sdir in search_dirs:
         if not sdir or not os.path.isdir(sdir):
             continue
-        for name in candidate_names:
-            full_path = os.path.join(sdir, name)
-            if os.path.isfile(full_path):
+        for fname in filenames:
+            path = os.path.join(sdir, fname)
+            if os.path.isfile(path):
                 try:
-                    with open(full_path, "r", encoding="utf-8") as f:
+                    with open(path, "r", encoding="utf-8") as f:
                         data = json.load(f)
                         if isinstance(data, dict) and ("layers" in data or "v" in data):
-                            return data
+                            loaded_json = data
+                            break
                 except Exception:
                     pass
+        if loaded_json:
+            break
 
-    # Recursive directory walk fallback
-    for sdir in search_dirs:
-        if not sdir or not os.path.isdir(sdir):
-            continue
-        for root, _, files in os.walk(sdir):
-            for fname in files:
-                if fname.lower().endswith(".json") and fname.lower() not in ["package.json", "tsconfig.json"]:
-                    full_path = os.path.join(root, fname)
-                    try:
-                        with open(full_path, "r", encoding="utf-8") as f:
-                            data = json.load(f)
-                            if isinstance(data, dict) and ("layers" in data or "v" in data):
-                                return data
-                    except Exception:
-                        continue
-    return None
+    # Búsqueda recursiva en caso de que esté en una subcarpeta
+    if not loaded_json:
+        for sdir in search_dirs:
+            if not sdir or not os.path.isdir(sdir):
+                continue
+            for root, _, files in os.walk(sdir):
+                for f in files:
+                    if f.lower().endswith(".json") and f.lower() not in ["package.json", "tsconfig.json"]:
+                        try:
+                            with open(os.path.join(root, f), "r", encoding="utf-8") as file_handle:
+                                data = json.load(file_handle)
+                                if isinstance(data, dict) and ("layers" in data or "v" in data):
+                                    loaded_json = data
+                                    break
+                        except Exception:
+                            continue
+                if loaded_json:
+                    break
+            if loaded_json:
+                break
 
-
-base_animation = load_lottie_source()
-
-
-def get_mood_animation_slice(raw_anim, marker_name: str):
-    """
-    Slices animation in-point (ip) and out-point (op) so st.lottie
-    loops the exact emotion segment without buttons.
-    """
-    if not raw_anim or not isinstance(raw_anim, dict):
+    if not loaded_json:
         return None
 
-    sliced = copy.deepcopy(raw_anim)
-    total_frames = raw_anim.get("op", 0)
+    # Supresión de capas correspondientes a los botones del JSON (capas 1 a 10)
+    clean_anim = copy.deepcopy(loaded_json)
+    button_words = ["outlines", "think", "alert", "jump", "yes", "no"]
+    clean_layers = []
 
-    # Frame slices defined in AI robo.json markers
-    marker_map = {
+    for layer in clean_anim.get("layers", []):
+        name = str(layer.get("nm", "")).strip().lower()
+        idx = layer.get("ind", 99)
+        # Las capas de botones en AI robo.json tienen índices del 1 al 10
+        if idx <= 10 or any(word in name for word in button_words):
+            layer["hd"] = True  # Oculta la capa a nivel de especificación Lottie
+            continue
+        clean_layers.append(layer)
+
+    clean_anim["layers"] = clean_layers
+    return clean_anim
+
+
+base_animation = load_and_clean_lottie()
+
+
+def get_mood_slice(anim_data, marker: str):
+    """Segmenta el inicio y final para reproducir la emoción correspondiente."""
+    if not anim_data:
+        return None
+
+    sliced = copy.deepcopy(anim_data)
+    total_frames = anim_data.get("op", 0)
+
+    marker_ranges = {
         "idle": (0, 30),
         "yes": (31, 105),
         "no": (106, 180),
@@ -333,8 +322,8 @@ def get_mood_animation_slice(raw_anim, marker_name: str):
         "jump": (391, 479),
     }
 
-    if total_frames >= 400 and marker_name in marker_map:
-        start_f, end_f = marker_map[marker_name]
+    if total_frames >= 400 and marker in marker_ranges:
+        start_f, end_f = marker_ranges[marker]
         sliced["ip"] = start_f
         sliced["op"] = end_f
 
@@ -342,10 +331,9 @@ def get_mood_animation_slice(raw_anim, marker_name: str):
 
 
 # -----------------------------------------------------------------------------
-# 4. TRANSLATION & TTS UTILITIES
+# 4. TRADUCCIÓN Y VOZ SINTETIZADA
 # -----------------------------------------------------------------------------
 def translate_phrase(text: str, source_lang: str = "auto", target_lang: str = "en") -> str:
-    """Translates text reliably with deep-translator, googletrans, or safe fallback."""
     if not text or not text.strip():
         return ""
     if source_lang == target_lang:
@@ -367,8 +355,7 @@ def translate_phrase(text: str, source_lang: str = "auto", target_lang: str = "e
     return text
 
 
-def synthesize_speech(text: str, lang: str = "es") -> bytes:
-    """Generates an MP3 audio buffer using gTTS."""
+def get_speech_audio(text: str, lang: str = "es") -> bytes:
     try:
         tts = gTTS(text=text, lang=lang, slow=False)
         fp = BytesIO()
@@ -380,137 +367,132 @@ def synthesize_speech(text: str, lang: str = "es") -> bytes:
 
 
 # -----------------------------------------------------------------------------
-# 5. EMOTIONAL PROTOCOLS & ACTION RESPONSES
+# 5. MENSAJES AMIGABLES Y EMPÁTICOS (Sin tecnicismos)
 # -----------------------------------------------------------------------------
-JOKES_SAD = [
+CHISTES = [
     "—Papá, ¿qué se siente tener un hijo tan inteligente? —No sé hijo, pregúntale a tu abuelo.",
     "¿Qué le dice un bit a otro? —Nos vemos en el bus.",
     "¿Por qué los pájaros no usan WhatsApp? —Porque ya tienen Twitter.",
-    "¿Cómo maldice un programador frustrado? —¡Me cago en el bit que te parió!",
+    "¿Cómo maldice un informático frustrado? —¡Me cago en el bit que te parió!",
     "¿Qué hace una abeja en el gimnasio? —¡Zumba!",
-    "Tranquilo/a: hasta el código más brillante tuvo errores antes de compilar con éxito.",
+    "No te desanimes: hasta el código más profesional tuvo cientos de errores antes de funcionar.",
 ]
 
-MOTIVATIONS_HAPPY = [
-    "¡Tu energía está al máximo! Toma esa idea que posponías y ejecútala hoy mismo.",
-    "¡Excelente momento! Cada decisión que tomes con esta confianza multiplicará tus resultados.",
-    "¡Estás en racha! Aprovecha este impulso para derribar tus mayores desafíos de la semana.",
-    "La pasión y el enfoque juntos son imparables. ¡Sigue acelerando!",
+MOTIVACIONES = [
+    "¡Qué alegría leerte así! Aprovecha este buen momento para darte un gusto, compartir tu alegría o avanzar en eso que tanto querías.",
+    "¡Esa es la actitud! Con esa buena energía contagias a cualquiera. ¡Sigue disfrutando tu día!",
+    "¡Se nota que las cosas van bien! Mantén ese optimismo y celebra tus pequeños y grandes logros.",
 ]
 
-ADVICE_ANGER = [
-    "Respira profundo: Inhala en 4 segundos... Mantén 4... Exhala lentamente en 6. Retoma el control.",
-    "La ira es fuego que quema primero las manos de quien la sostiene. Observa con mente fría.",
-    "Tómate dos minutos de pausa, bebe agua fresca y no tomes decisiones definitivas con la mente alterada.",
-    "La verdadera fuerza radica en la serenidad frente a la tormenta.",
+CONSEJOS_CALMA = [
+    "Uff, es normal sentirse así cuando las cosas salen mal o son injustas. Respira hondo, bebe un vaso de agua fresca y tómate cinco minutos antes de seguir.",
+    "Comprendo tu molestia, a cualquiera le daría rabia. Date un pequeño respiro para despejarte; tu tranquilidad siempre es lo primero.",
+    "A veces el día se pone cuesta arriba. Suelta la tensión un momento, estira los hombros y no permitas que esto te arruine el resto del día.",
 ]
 
-PROMPTS_NEUTRAL = [
-    "Estado de equilibrio ideal. Es el mejor momento para analizar datos y metas sin sesgos.",
-    "La neutralidad es la antesala de la creatividad objetiva.",
-    "Mente despejada: buen instante para planificar tus próximos pasos con precisión táctica.",
+CONVERSACION_NEUTRAL = [
+    "Te escucho con atención. Los días tranquilos y en calma son ideales para reflexionar o simplemente descansar.",
+    "Comprendo lo que dices. Cuéntame con confianza si quieres desahogarte o pensar en voz alta.",
 ]
 
-ANGER_KEYWORDS = [
+ANGER_WORDS = [
     "odio", "furia", "enojado", "enojada", "rabia", "molesto", "molesta", "ira",
-    "maldito", "maldita", "angry", "furious", "hate", "mad", "pissed", "rage", "stupid"
+    "maldito", "maldita", "angry", "furious", "hate", "mad", "pissed", "rage"
 ]
 
-EXCITED_KEYWORDS = [
+EXCITED_WORDS = [
     "increíble", "asombroso", "genial", "excelente", "vamos", "fuego", "logro",
-    "victoria", "campeón", "awesome", "amazing", "pumped", "hyped", "thrilled"
+    "victoria", "campeón", "awesome", "amazing", "pumped", "hyped"
 ]
 
 
-def evaluate_sentiment(text_es: str, polarity: float, subjectivity: float):
-    """Diagnoses mood, chooses Lottie animation marker and action protocol."""
-    lower_text = text_es.lower()
+def analyze_conversation(user_text: str, polarity: float, subjectivity: float):
+    """Genera respuestas cálidas y selecciona la animación del compañero."""
+    lower_text = user_text.lower()
 
-    if any(k in lower_text for k in ANGER_KEYWORDS) or (polarity < -0.3 and subjectivity > 0.6):
+    # Enfadado / Frustrado
+    if any(k in lower_text for k in ANGER_WORDS) or (polarity < -0.3 and subjectivity > 0.6):
         return {
-            "mood_name": "Tensión / Alerta Emocional",
-            "emoji": "⚡",
+            "title": "Respira hondo, aquí estoy contigo...",
+            "feeling": "Noté algo de frustración",
+            "emoji": "🌿",
             "marker": "alert",
-            "color": "#ff375f",
-            "protocol_name": "Protocolo de Desescalada & Calma",
-            "action": random.choice(ADVICE_ANGER),
-            "status": "Resonancia alterada detectada. Ejecutando modulación de estrés.",
+            "color": "#ff453a",
+            "message": random.choice(CONSEJOS_CALMA),
         }
 
-    if any(k in lower_text for k in EXCITED_KEYWORDS) or (polarity >= 0.5):
+    # Eufórico / Muy feliz
+    if any(k in lower_text for k in EXCITED_WORDS) or (polarity >= 0.5):
         return {
-            "mood_name": "Euforia / Alta Vibración",
-            "emoji": "🚀",
+            "title": "¡Qué gran noticia, me alegro mucho!",
+            "feeling": "¡Mucha alegría y emoción!",
+            "emoji": "🎉",
             "marker": "jump",
             "color": "#30d158",
-            "protocol_name": "Protocolo Catalizador de Acción",
-            "action": random.choice(MOTIVATIONS_HAPPY),
-            "status": "Pico de energía detectado. Canalizando impulso creativo.",
+            "message": random.choice(MOTIVACIONES),
         }
 
+    # Positivo
     if polarity > 0.05:
         return {
-            "mood_name": "Sentimiento Positivo",
+            "title": "¡Qué gusto leer esto!",
+            "feeling": "Buena vibra detectada",
             "emoji": "😊",
             "marker": "yes",
             "color": "#64d2ff",
-            "protocol_name": "Protocolo de Motivación",
-            "action": random.choice(MOTIVATIONS_HAPPY),
-            "status": "Armonía detectada. El compañero asiente y refuerza tu optimismo.",
+            "message": random.choice(MOTIVACIONES),
         }
 
+    # Triste / Desanimado
     if polarity < -0.05:
         return {
-            "mood_name": "Sentimiento Negativo / Melancolía",
-            "emoji": "😔",
+            "title": "Un abrazo fuerte... déjame sacarte una sonrisa",
+            "feeling": "Parece un momento difícil",
+            "emoji": "💛",
             "marker": "no",
             "color": "#bf5af2",
-            "protocol_name": "Protocolo Reanimador // Chiste",
-            "action": random.choice(JOKES_SAD),
-            "status": "Frecuencia baja detectada. Desplegando dosis de humor y calidez.",
+            "message": f"Siento que no estés teniendo el mejor día. Para animarte un poco, mira este chiste:\n\n{random.choice(CHISTES)}",
         }
 
+    # Neutral
     return {
-        "mood_name": "Sentimiento Neutral / Contemplativo",
-        "emoji": "😐",
+        "title": "Te escucho con atención...",
+        "feeling": "Tranquilo y reflexivo",
+        "emoji": "💬",
         "marker": "thinking",
         "color": "#00f0ff",
-        "protocol_name": "Protocolo de Reflexión",
-        "action": random.choice(PROMPTS_NEUTRAL),
-        "status": "Equilibrio analítico. El compañero reflexiona sobre tu mensaje.",
+        "message": random.choice(CONVERSACION_NEUTRAL),
     }
 
 
 # -----------------------------------------------------------------------------
-# 6. USER INTERFACE (No buttons required)
+# 6. ENCABEZADO Y ENTRADA DE TEXTO
 # -----------------------------------------------------------------------------
 render_clean_html(
     """
     <div style="text-align: center; margin-top: 10px; margin-bottom: 25px;">
-        <span class="mono-subtitle">// SISTEMA INTERACTIVO DE ANÁLISIS DE SENTIMIENTO //</span>
-        <div class="orbitron-title">COMPAÑERO NEURONAL</div>
-        <p style="color: #7b93af; font-family: 'JetBrains Mono', monospace; font-size: 0.9rem;">
-            Escribe en el campo de texto y pulsa Enter. El robot Lottie responderá automáticamente según tu emoción.
+        <div class="title-glow">TU COMPAÑERO EMOCIONAL</div>
+        <p style="color: #8da4be; font-size: 1rem; margin-top: 2px;">
+            Escribe cómo te sientes o cómo fue tu día y presiona Enter para conversar.
         </p>
     </div>
     """
 )
 
-# Input Controls
-col_text, col_lang = st.columns([3.2, 1], gap="medium")
+col_input, col_target = st.columns([3.2, 1], gap="medium")
 
-with col_text:
-    user_input = st.text_input(
-        label="Escribe tu frase aquí:",
-        placeholder="Ej: Hoy ha sido un día difícil pero sigo adelante... / ¡Aprobé mi examen con éxito!",
-        key="phrase_input",
+with col_input:
+    user_phrase = st.text_input(
+        label="¿Qué tienes en mente?",
+        placeholder="Ej: ¡Hoy fue un día increíble en el trabajo! / Estoy un poco cansado de todo...",
+        key="main_input",
     )
 
-with col_lang:
-    target_lang = st.selectbox(
-        label="Traducir resultado a:",
+with col_target:
+    selected_lang = st.selectbox(
+        label="Traducir a:",
         options=["en", "es", "fr", "ja", "de", "it", "pt"],
-        format_func=lambda code: {
+        format_func=lambda c: {
             "en": "🇬🇧 Inglés (EN)",
             "es": "🇪🇸 Español (ES)",
             "fr": "🇫🇷 Francés (FR)",
@@ -518,137 +500,127 @@ with col_lang:
             "de": "🇩🇪 Alemán (DE)",
             "it": "🇮🇹 Italiano (IT)",
             "pt": "🇵🇹 Portugués (PT)",
-        }.get(code, code),
+        }.get(c, c),
         index=0,
     )
 
-# Real-Time Sentiment & Mood Computation
-if user_input and user_input.strip():
-    english_translation = translate_phrase(user_input, source_lang="auto", target_lang="en")
-    blob = TextBlob(english_translation)
+# Procesamiento de sentimiento en tiempo real
+if user_phrase and user_phrase.strip():
+    english_txt = translate_phrase(user_phrase, source_lang="auto", target_lang="en")
+    blob = TextBlob(english_txt)
     polarity_val = round(blob.sentiment.polarity, 2)
     subjectivity_val = round(blob.sentiment.subjectivity, 2)
-    multilingual_text = translate_phrase(user_input, source_lang="auto", target_lang=target_lang)
-    mood_result = evaluate_sentiment(user_input, polarity_val, subjectivity_val)
+    translated_display = translate_phrase(user_phrase, source_lang="auto", target_lang=selected_lang)
+    response = analyze_conversation(user_phrase, polarity_val, subjectivity_val)
 else:
     polarity_val = 0.0
     subjectivity_val = 0.0
-    english_translation = ""
-    multilingual_text = ""
-    mood_result = {
-        "mood_name": "Esperando Entrada",
-        "emoji": "👁️",
+    english_txt = ""
+    translated_display = ""
+    response = {
+        "title": "¡Hola! ¿Cómo te encuentras hoy?",
+        "feeling": "Esperando conversar",
+        "emoji": "👋",
         "marker": "idle",
         "color": "#64d2ff",
-        "protocol_name": "Modo Centinela",
-        "action": "Escribe una frase en el terminal para activar los sensores del compañero.",
-        "status": "Compañero en espera pasiva. Radar de sentimientos activo.",
+        "message": "Cuéntame lo que estás sintiendo o lo que hiciste hoy. Te escucharé con atención y aquí estaré para responderte.",
     }
 
-# Sliced Lottie segment for the active state
-active_lottie = get_mood_animation_slice(base_animation, mood_result["marker"])
+# Preparación de la animación sin botones
+active_lottie = get_mood_slice(base_animation, response["marker"])
 
 
 # -----------------------------------------------------------------------------
-# 7. DUAL PANEL: LOTTIE COMPANION & TELEMETRY MONITOR
+# 7. VISTA PRINCIPAL: ROBOT Y CONVERSACIÓN ALINEADOS
 # -----------------------------------------------------------------------------
-col_visual, col_info = st.columns([1.1, 1], gap="large")
+col_robo, col_dialogo = st.columns([1, 1.2], gap="large")
 
-with col_visual:
+with col_robo:
+    # Contenedor del robot alineado al contenido adyacente
+    render_clean_html('<div class="robot-container">')
+
+    if active_lottie:
+        st.lottie(
+            active_lottie,
+            width=320,
+            key=f"companion_lottie_{response['marker']}",
+        )
+    else:
+        st.info("Buscando animación Lottie en la carpeta del proyecto...")
+
     render_clean_html(
         f"""
-        <div class="lottie-pedestal">
-            <div style="font-family: 'Orbitron'; font-size: 0.8rem; letter-spacing: 2px; color: {mood_result['color']}; margin-bottom: 8px;">
-                ESTADO ACTIVO: {mood_result['marker'].upper()}
-            </div>
+        <div style="font-size: 0.95rem; font-weight: 600; color: {response['color']}; margin-top: 10px;">
+            {response['emoji']} {response['feeling']}
+        </div>
+        </div>
         """
     )
 
-    if active_lottie:
-        # Standard streamlit-lottie implementation from your slide
-        st.lottie(
-            active_lottie,
-            width=350,
-            key=f"lottie_companion_{mood_result['marker']}",
-        )
-    else:
-        st.warning("⚠️ Buscando 'graficos.json' o 'AI robo.json' en el directorio del script...")
 
-    render_clean_html("</div>")
-
-
-with col_info:
-    # Render telemetry card cleanly without Markdown 4-space code block bug
-    card_html = f"""
-    <div class="noir-card" style="border-left: 4px solid {mood_result['color']};">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-            <span style="color: {mood_result['color']}; font-family: 'Orbitron'; font-size: 0.85rem; font-weight: 700;">
-                {mood_result['emoji']} TELEMETRÍA
-            </span>
-            <span style="font-family: 'JetBrains Mono'; font-size: 0.85rem; background: rgba(0,0,0,0.4); padding: 4px 10px; border-radius: 12px; border: 1px solid {mood_result['color']}; color: {mood_result['color']};">
-                POLARIDAD: {polarity_val}
-            </span>
-            <span style="font-family: 'JetBrains Mono'; font-size: 0.85rem; background: rgba(0,0,0,0.4); padding: 4px 10px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1);">
-                SUBJETIVIDAD: {subjectivity_val}
-            </span>
-        </div>
-        <h2 style="font-size: 1.7rem; margin: 4px 0 8px 0; color: #ffffff;">
-            {mood_result['mood_name']}
-        </h2>
-        <p style="color: #8fa6c2; font-family: 'JetBrains Mono'; font-size: 0.85rem; margin-bottom: 16px;">
-            {mood_result['status']}
-        </p>
-        <div style="background: rgba(0,0,0,0.45); border-radius: 12px; padding: 16px; border: 1px dashed rgba(255,255,255,0.12); margin-bottom: 16px;">
-            <div style="font-family: 'Orbitron'; font-size: 0.8rem; color: {mood_result['color']}; font-weight: 700; margin-bottom: 6px;">
-                ⚡ {mood_result['protocol_name']}
+with col_dialogo:
+    # Tarjeta de diálogo limpia y legible
+    render_clean_html(
+        f"""
+        <div class="card-noir" style="border-left: 4px solid {response['color']};">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                <span style="color: {response['color']}; font-weight: 700; font-size: 0.9rem;">
+                    {response['emoji']} TU COMPAÑERO DICE:
+                </span>
+                <span style="font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; background: rgba(0,0,0,0.35); padding: 4px 10px; border-radius: 12px; color: #a4bedc;">
+                    Ánimo: {polarity_val:+0.2f}
+                </span>
             </div>
-            <div style="font-size: 1rem; line-height: 1.5; color: #f5f8fc;">
-                "{mood_result['action']}"
-            </div>
-        </div>
-    </div>
-    """
-    render_clean_html(card_html)
 
-    # Voice TTS Player
-    if user_input and user_input.strip():
-        spoken_text = f"{mood_result['mood_name']}. {mood_result['action']}"
-        audio_bytes = synthesize_speech(spoken_text, lang="es")
-        if audio_bytes:
-            st.caption("🔊 Voz Sintetizada del Compañero:")
-            st.audio(audio_bytes, format="audio/mp3")
+            <h2 style="font-size: 1.55rem; font-weight: 700; margin: 0 0 14px 0; color: #ffffff;">
+                {response['title']}
+            </h2>
 
-    # Multilingual Output
-    if multilingual_text:
-        translation_html = f"""
-        <div style="background: rgba(100, 210, 255, 0.05); border-radius: 12px; padding: 12px 16px; border: 1px solid rgba(100, 210, 255, 0.2); margin-top: 10px;">
-            <div style="font-family: 'JetBrains Mono'; font-size: 0.75rem; color: #64d2ff; letter-spacing: 1px;">
-                TRADUCCIÓN EN TIEMPO REAL ({target_lang.upper()}):
-            </div>
-            <div style="font-family: 'JetBrains Mono'; font-size: 0.95rem; color: #ffffff; margin-top: 4px;">
-                "{multilingual_text}"
+            <div style="font-size: 1.05rem; line-height: 1.6; color: #eaf1fa; background: rgba(0,0,0,0.3); padding: 18px; border-radius: 14px; border: 1px solid rgba(255,255,255,0.06); margin-bottom: 14px;">
+                {response['message'].replace(chr(10), '<br>')}
             </div>
         </div>
         """
-        render_clean_html(translation_html)
+    )
+
+    # Reproductor de voz del mensaje
+    if user_phrase and user_phrase.strip():
+        spoken_text = f"{response['title']}. {response['message']}"
+        voice_audio = get_speech_audio(spoken_text, lang="es")
+        if voice_audio:
+            st.caption("🔊 Escuchar la respuesta:")
+            st.audio(voice_audio, format="audio/mp3")
+
+    # Traducción de la frase del usuario
+    if translated_display:
+        render_clean_html(
+            f"""
+            <div style="background: rgba(100, 210, 255, 0.05); border-radius: 12px; padding: 12px 18px; border: 1px solid rgba(100, 210, 255, 0.2); margin-top: 10px;">
+                <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; color: #64d2ff; letter-spacing: 1px;">
+                    TU MENSAJE EN {selected_lang.upper()}:
+                </div>
+                <div style="font-size: 0.95rem; color: #ffffff; margin-top: 4px;">
+                    "{translated_display}"
+                </div>
+            </div>
+            """
+        )
 
 
 # -----------------------------------------------------------------------------
-# 8. SIDEBAR: POLARITY & SUBJECTIVITY REFERENCE
+# 8. BARRA LATERAL INFORMATIVA
 # -----------------------------------------------------------------------------
 with st.sidebar:
-    st.markdown("### 📊 Polaridad y Subjetividad")
+    st.markdown("### 💡 ¿Cómo funciona?")
     st.info(
         """
-        **Polaridad (-1 a 1):**
-        Indica si el sentimiento expresado en el texto es positivo, negativo o neutral.
-        - `> 0`: Sentimiento Positivo 😊 (Activa protocolo de motivación)
-        - `< 0`: Sentimiento Negativo 😔 (Activa protocolo de humor/chistes)
-        - `~ 0`: Sentimiento Neutral 😐 (Activa protocolo de reflexión)
-        
-        **Subjetividad (0 a 1):**
-        Mide cuánto del contenido es subjetivo (opiniones, emociones, creencias) frente a objetivo (hechos).
+        **Análisis de Ánimo:**
+        El compañero analiza el texto ingresado para entender cómo te sientes:
+        - **Positivo (> 0):** Celebrará tus logros y te motivará a seguir con esa buena energía.
+        - **Triste (< 0):** Te acompañará y te contará un chiste para levantarte el ánimo.
+        - **Enojado o Frustrado:** Te ofrecerá palabras de calma y consejos para relajarte.
+        - **Neutral (~ 0):** Conversará contigo de forma abierta y reflexiva.
         """
     )
     st.markdown("---")
-    st.caption("🤖 NOIR.AI Engine // Python 3.11 // Powered by TextBlob & Streamlit-Lottie")
+    st.caption("NOIR.AI // Python 3.11 // TextBlob & Streamlit-Lottie")
