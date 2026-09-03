@@ -11,11 +11,11 @@ from streamlit_lottie import st_lottie
 from textblob import TextBlob
 from gtts import gTTS
 
-# Compatibilidad con la sintaxis st.lottie de las diapositivas
+# Compatibilidad con sintaxis st.lottie
 st.lottie = st_lottie
 
 # -----------------------------------------------------------------------------
-# MOTOR DE VOZ MASCULINA NEURAL (edge-tts) CON FALLBACK (gTTS)
+# MOTORES DE VOZ NEURAL MASCULINA & TRADUCCIÓN
 # -----------------------------------------------------------------------------
 try:
     import edge_tts
@@ -51,14 +51,10 @@ def run_async(coro):
 
 
 def get_speech_audio(text: str, voice_name: str = "es-ES-AlvaroNeural") -> bytes:
-    """
-    Genera audio con voz masculina natural (edge-tts).
-    Si no hay conexión o falla, utiliza gTTS como alternativa.
-    """
     if not text or not text.strip():
         return b""
 
-    # 1. Intento con voz masculina neural
+    # Voz masculina neural
     if HAS_EDGE_TTS:
         try:
             async def _synthesize():
@@ -75,7 +71,7 @@ def get_speech_audio(text: str, voice_name: str = "es-ES-AlvaroNeural") -> bytes
         except Exception:
             pass
 
-    # 2. Respaldo gTTS (con acento regional)
+    # Respaldo con gTTS
     try:
         tts = gTTS(text=text, lang="es", tld="es", slow=False)
         fp = BytesIO()
@@ -86,204 +82,25 @@ def get_speech_audio(text: str, voice_name: str = "es-ES-AlvaroNeural") -> bytes
         return b""
 
 
-# -----------------------------------------------------------------------------
-# 1. HELPER HTML
-# -----------------------------------------------------------------------------
 def render_clean_html(html_str: str):
+    """Elimina sangrías para que Markdown no interprete HTML como bloques de código."""
     clean = "".join(line.strip() for line in html_str.splitlines() if line.strip())
     st.markdown(clean, unsafe_allow_html=True)
 
 
 # -----------------------------------------------------------------------------
-# 2. CONFIGURACIÓN Y ESTÉTICA GLOWING NOIR
+# CONFIGURACIÓN DE PÁGINA
 # -----------------------------------------------------------------------------
 st.set_page_config(
-    page_title="Tu Compañero Emocional",
+    page_title="Compañero Emocional // Cyber-Noir",
     page_icon="🤖",
     layout="wide",
     initial_sidebar_state="collapsed",
 )
 
-NOIR_STYLE = r"""
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
-
-html, body, [data-testid="stAppViewContainer"] {
-    background-color: #05070c !important;
-    color: #e6edf5 !important;
-    font-family: 'Plus Jakarta Sans', sans-serif !important;
-    overflow-x: hidden;
-}
-
-[data-testid="stHeader"] {
-    background: transparent !important;
-}
-
-.block-container {
-    max-width: 1150px !important;
-    padding-top: 1.8rem !important;
-    padding-bottom: 2.5rem !important;
-    margin: 0 auto !important;
-}
-
-#noir-canvas-bg {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    z-index: 0;
-    pointer-events: none;
-}
-
-.title-glow {
-    font-family: 'Orbitron', sans-serif;
-    font-size: 2.3rem;
-    font-weight: 800;
-    letter-spacing: 2px;
-    background: linear-gradient(135deg, #ffffff 10%, #64d2ff 60%, #0077ff 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    margin-bottom: 4px;
-}
-
-.card-noir {
-    background: rgba(13, 18, 30, 0.75);
-    border: 1px solid rgba(100, 210, 255, 0.18);
-    border-radius: 20px;
-    padding: 24px;
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.7);
-    margin-bottom: 12px;
-}
-
-div[data-testid="stVerticalBlockBorderWrapper"] {
-    background: rgba(13, 18, 30, 0.75) !important;
-    border: 1px solid rgba(100, 210, 255, 0.18) !important;
-    border-radius: 20px !important;
-    padding: 20px !important;
-    backdrop-filter: blur(16px) !important;
-    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.7) !important;
-    display: flex !important;
-    flex-direction: column !important;
-    justify-content: center !important;
-    align-items: center !important;
-}
-
-div[data-testid="stLottie"], iframe[title="streamlit_lottie.st_lottie"] {
-    display: flex !important;
-    justify-content: center !important;
-    align-items: center !important;
-    margin: 0 auto !important;
-    filter: drop-shadow(0 0 25px rgba(100, 210, 255, 0.35));
-}
-
-.stTextInput input {
-    background: rgba(13, 19, 33, 0.85) !important;
-    border: 1px solid rgba(100, 210, 255, 0.25) !important;
-    border-radius: 14px !important;
-    color: #ffffff !important;
-    font-size: 1.05rem !important;
-    padding: 14px 18px !important;
-}
-
-.stTextInput input:focus {
-    border-color: #64d2ff !important;
-    box-shadow: 0 0 20px rgba(100, 210, 255, 0.35) !important;
-}
-</style>
-
-<canvas id="noir-canvas-bg"></canvas>
-
-<script>
-(function() {
-    const canvas = document.getElementById('noir-canvas-bg');
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    let w = canvas.width = window.innerWidth;
-    let h = canvas.height = window.innerHeight;
-
-    window.addEventListener('resize', () => {
-        w = canvas.width = window.innerWidth;
-        h = canvas.height = window.innerHeight;
-    });
-
-    const particles = [];
-    const trail = [];
-
-    window.addEventListener('mousemove', (e) => {
-        for (let i = 0; i < 2; i++) {
-            trail.push({
-                x: e.clientX + (Math.random() - 0.5) * 6,
-                y: e.clientY + (Math.random() - 0.5) * 6,
-                size: Math.random() * 2.5 + 1,
-                alpha: 0.85,
-                decay: Math.random() * 0.025 + 0.015,
-                vx: (Math.random() - 0.5) * 1.2,
-                vy: (Math.random() - 0.5) * 1.2
-            });
-        }
-    });
-
-    for (let i = 0; i < 50; i++) {
-        particles.push({
-            x: Math.random() * w,
-            y: Math.random() * h,
-            r: Math.random() * 1.5 + 0.5,
-            vx: (Math.random() - 0.5) * 0.2,
-            vy: (Math.random() - 0.5) * 0.2,
-            alpha: Math.random() * 0.5 + 0.2
-        });
-    }
-
-    function animate() {
-        ctx.clearRect(0, 0, w, h);
-
-        for (let p of particles) {
-            p.x += p.vx;
-            p.y += p.vy;
-            if (p.x < 0) p.x = w;
-            if (p.x > w) p.x = 0;
-            if (p.y < 0) p.y = h;
-            if (p.y > h) p.y = 0;
-
-            ctx.beginPath();
-            ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-            ctx.fillStyle = "rgba(100, 210, 255, " + (p.alpha * 0.3) + ")";
-            ctx.shadowBlur = 6;
-            ctx.shadowColor = "#64d2ff";
-            ctx.fill();
-        }
-
-        for (let i = trail.length - 1; i >= 0; i--) {
-            const t = trail[i];
-            t.x += t.vx;
-            t.y += t.vy;
-            t.alpha -= t.decay;
-            if (t.alpha <= 0) {
-                trail.splice(i, 1);
-                continue;
-            }
-            ctx.beginPath();
-            ctx.arc(t.x, t.y, t.size, 0, Math.PI * 2);
-            ctx.fillStyle = "rgba(0, 240, 255, " + (t.alpha * 0.6) + ")";
-            ctx.shadowBlur = 10;
-            ctx.shadowColor = "#00f0ff";
-            ctx.fill();
-        }
-        requestAnimationFrame(animate);
-    }
-    animate();
-})();
-</script>
-"""
-
-render_clean_html(NOIR_STYLE)
-
 
 # -----------------------------------------------------------------------------
-# 3. CARGA DE ARCHIVO Y SUPRESIÓN DE BOTONES DEL LOTTIE
+# CARGA Y SUPRESIÓN DE BOTONES DEL LOTTIE
 # -----------------------------------------------------------------------------
 @st.cache_data
 def load_and_clean_lottie():
@@ -323,29 +140,9 @@ def load_and_clean_lottie():
             break
 
     if not loaded_json:
-        for sdir in search_dirs:
-            if not sdir or not os.path.isdir(sdir):
-                continue
-            for root, _, files in os.walk(sdir):
-                for f in files:
-                    if f.lower().endswith(".json") and f.lower() not in ["package.json", "tsconfig.json"]:
-                        try:
-                            with open(os.path.join(root, f), "r", encoding="utf-8") as file_handle:
-                                data = json.load(file_handle)
-                                if isinstance(data, dict) and ("layers" in data or "v" in data):
-                                    loaded_json = data
-                                    break
-                        except Exception:
-                            continue
-                if loaded_json:
-                    break
-            if loaded_json:
-                break
-
-    if not loaded_json:
         return None
 
-    # Ocultar capas 1 a 10 (botones dibujados en la base del JSON)
+    # Desactivar capas de botones (capas 1 a 10)
     clean_anim = copy.deepcopy(loaded_json)
     button_words = ["outlines", "think", "alert", "jump", "yes", "no"]
     clean_layers = []
@@ -390,7 +187,7 @@ def get_mood_slice(anim_data, marker: str):
 
 
 # -----------------------------------------------------------------------------
-# 4. TRADUCCIÓN
+# TRADUCCIÓN Y REGLAS DE SENTIMIENTO
 # -----------------------------------------------------------------------------
 def translate_phrase(text: str, source_lang: str = "auto", target_lang: str = "en") -> str:
     if not text or not text.strip():
@@ -414,26 +211,23 @@ def translate_phrase(text: str, source_lang: str = "auto", target_lang: str = "e
     return text
 
 
-# -----------------------------------------------------------------------------
-# 5. MENSAJES AMIGABLES
-# -----------------------------------------------------------------------------
 CHISTES = [
     "—Papá, ¿qué se siente tener un hijo tan inteligente? —No sé hijo, pregúntale a tu abuelo.",
     "¿Qué le dice un bit a otro? —Nos vemos en el bus.",
     "¿Por qué los pájaros no usan WhatsApp? —Porque ya tienen Twitter.",
     "¿Cómo maldice un informático frustrado? —¡Me cago en el bit que te parió!",
     "¿Qué hace una abeja en el gimnasio? —¡Zumba!",
-    "No te desanimes: hasta el código más profesional tuvo cientos de errores antes de funcionar.",
+    "Tranquilo/a: hasta el código mejor optimizado falló decenas de veces antes de compilar.",
 ]
 
 MOTIVACIONES = [
     "¡Qué alegría leerte así! Aprovecha este buen momento para darte un gusto, compartir tu alegría o avanzar en eso que tanto querías.",
-    "¡Esa es la actitud! Con esa buena energía contagias a cualquiera. ¡Sigue disfrutando tu día!",
-    "¡Se nota que las cosas van bien! Mantén ese optimismo y celebra tus pequeños y grandes logros.",
+    "¡Esa es la actitud! Con esa buena energía contagias a cualquiera. ¡Sigue disfrutando tu día al máximo!",
+    "¡Se nota que las cosas van bien! Mantén ese optimismo y celebra tanto los pequeños como los grandes logros.",
 ]
 
 CONSEJOS_CALMA = [
-    "Uff, es normal sentirse así cuando las cosas salen mal o son injustas. Respira hondo, bebe un vaso de agua fresca y tómate cinco minutos antes de seguir.",
+    "Uff, es normal sentirse así cuando las cosas salen mal o son injustas. Respira hondo, bebe un vaso de agua fresca y date cinco minutos antes de continuar.",
     "Comprendo tu molestia, a cualquiera le daría rabia. Date un pequeño respiro para despejarte; tu tranquilidad siempre es lo primero.",
     "A veces el día se pone cuesta arriba. Suelta la tensión un momento, estira los hombros y no permitas que esto te arruine el resto del día.",
 ]
@@ -463,7 +257,8 @@ def analyze_conversation(user_text: str, polarity: float, subjectivity: float):
             "feeling": "Noté algo de frustración",
             "emoji": "🌿",
             "marker": "alert",
-            "color": "#ff453a",
+            "color": "#ff3366",
+            "glow": "rgba(255, 51, 102, 0.4)",
             "message": random.choice(CONSEJOS_CALMA),
         }
 
@@ -473,7 +268,8 @@ def analyze_conversation(user_text: str, polarity: float, subjectivity: float):
             "feeling": "¡Mucha alegría y emoción!",
             "emoji": "🎉",
             "marker": "jump",
-            "color": "#30d158",
+            "color": "#00ff88",
+            "glow": "rgba(0, 255, 136, 0.4)",
             "message": random.choice(MOTIVACIONES),
         }
 
@@ -483,7 +279,8 @@ def analyze_conversation(user_text: str, polarity: float, subjectivity: float):
             "feeling": "Buena vibra detectada",
             "emoji": "😊",
             "marker": "yes",
-            "color": "#64d2ff",
+            "color": "#00e5ff",
+            "glow": "rgba(0, 229, 255, 0.4)",
             "message": random.choice(MOTIVACIONES),
         }
 
@@ -494,6 +291,7 @@ def analyze_conversation(user_text: str, polarity: float, subjectivity: float):
             "emoji": "💛",
             "marker": "no",
             "color": "#bf5af2",
+            "glow": "rgba(191, 90, 242, 0.4)",
             "message": f"Siento que no estés teniendo el mejor día. Para animarte un poco, mira este chiste:\n\n{random.choice(CHISTES)}",
         }
 
@@ -502,32 +300,79 @@ def analyze_conversation(user_text: str, polarity: float, subjectivity: float):
         "feeling": "Tranquilo y reflexivo",
         "emoji": "💬",
         "marker": "thinking",
-        "color": "#00f0ff",
+        "color": "#64d2ff",
+        "glow": "rgba(100, 210, 255, 0.35)",
         "message": random.choice(CONVERSACION_NEUTRAL),
     }
 
 
 # -----------------------------------------------------------------------------
-# 6. ENCABEZADO Y ENTRADA DE TEXTO
+# ESTADO DE SESIÓN (Permite interactuar con los chips de prueba rápida)
+# -----------------------------------------------------------------------------
+if "phrase_input" not in st.session_state:
+    st.session_state.phrase_input = ""
+
+
+def set_quick_phrase(phrase: str):
+    st.session_state.phrase_input = phrase
+
+
+# -----------------------------------------------------------------------------
+# ENCABEZADO Y ENTRADA PRINCIPAL
 # -----------------------------------------------------------------------------
 render_clean_html(
     """
-    <div style="text-align: center; margin-top: 5px; margin-bottom: 22px;">
+    <div style="text-align: center; margin-top: 5px; margin-bottom: 18px;">
         <div class="title-glow">TU COMPAÑERO EMOCIONAL</div>
         <p style="color: #8da4be; font-size: 0.95rem; margin-top: 2px;">
-            Escribe cómo te sientes o cómo fue tu día y presiona Enter para conversar.
+            Escribe cómo te sientes o presiona Enter para una respuesta inmediata.
         </p>
     </div>
     """
 )
 
+# Fila interactiva de chips de prueba rápida
+render_clean_html(
+    """
+    <div style="text-align: center; margin-bottom: 12px;">
+        <span style="font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; color: #64d2ff; letter-spacing: 2px; text-transform: uppercase;">
+            ⚡ Pruebas rápidas:
+        </span>
+    </div>
+    """
+)
+
+chip_cols = st.columns(4)
+with chip_cols[0]:
+    if st.button("🎉 ¡Tuve un día genial!", use_container_width=True):
+        set_quick_phrase("¡Hoy fue un día increíble y lleno de energía!")
+        st.rerun()
+
+with chip_cols[1]:
+    if st.button("🌧️ Me siento desanimado", use_container_width=True):
+        set_quick_phrase("Hoy me siento triste y sin ganas de nada...")
+        st.rerun()
+
+with chip_cols[2]:
+    if st.button("⚡ Estoy muy molesto", use_container_width=True):
+        set_quick_phrase("Tengo mucha rabia con una situación injusta")
+        st.rerun()
+
+with chip_cols[3]:
+    if st.button("🍃 Una tarde tranquila", use_container_width=True):
+        set_quick_phrase("Es un día tranquilo, pensando en mis metas")
+        st.rerun()
+
+st.write("")
+
+# Controles de Entrada
 col_input, col_target = st.columns([3.2, 1], gap="medium")
 
 with col_input:
     user_phrase = st.text_input(
         label="¿Qué tienes en mente?",
-        placeholder="Ej: ¡Hoy fue un día increíble en el trabajo! / Estoy un poco cansado de todo...",
-        key="main_input",
+        placeholder="Escribe lo que sientes y pulsa Enter...",
+        key="phrase_input",
     )
 
 with col_target:
@@ -546,7 +391,7 @@ with col_target:
         index=0,
     )
 
-# Procesamiento de sentimiento en tiempo real
+# Procesamiento del sentimiento
 if user_phrase and user_phrase.strip():
     english_txt = translate_phrase(user_phrase, source_lang="auto", target_lang="en")
     blob = TextBlob(english_txt)
@@ -564,111 +409,293 @@ else:
         "feeling": "Esperando conversar",
         "emoji": "👋",
         "marker": "idle",
-        "color": "#64d2ff",
-        "message": "Cuéntame lo que estás sintiendo o lo que hiciste hoy. Te escucharé con atención y aquí estaré para responderte.",
+        "color": "#00f0ff",
+        "glow": "rgba(0, 240, 255, 0.35)",
+        "message": "Cuéntame lo que estás sintiendo o cómo estuvo tu día. Aquí estaré listo para acompañarte y responderte.",
     }
 
 active_lottie = get_mood_slice(base_animation, response["marker"])
 
+# -----------------------------------------------------------------------------
+# INYECCIÓN DINÁMICA DE ESTILOS CSS SEGÚN EL ÁNIMO ACTIVO
+# -----------------------------------------------------------------------------
+MOOD_THEME_CSS = r"""
+<style>
+:root {
+    --mood-color: __COLOR__;
+    --mood-glow: __GLOW__;
+}
+
+/* Borde exterior interactivo con gradiente vivo */
+.cyber-card-outer {
+    position: relative;
+    border-radius: 24px;
+    padding: 2px;
+    background: linear-gradient(135deg, var(--mood-color) 0%, rgba(255,255,255,0.05) 50%, var(--mood-color) 100%);
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.7), 0 0 35px var(--mood-glow);
+    transition: all 0.5s ease;
+    margin-bottom: 16px;
+}
+
+.cyber-card-outer:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 15px 50px rgba(0, 0, 0, 0.8), 0 0 50px var(--mood-glow);
+}
+
+.cyber-card-inner {
+    background: rgba(11, 16, 28, 0.92);
+    border-radius: 22px;
+    padding: 24px;
+    backdrop-filter: blur(20px);
+}
+
+/* Pedestal Holográfico para el Robot */
+.holo-chamber {
+    position: relative;
+    width: 100%;
+    min-height: 360px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    border-radius: 22px;
+    background: radial-gradient(circle at center, var(--mood-glow) 0%, rgba(5, 7, 12, 0.95) 75%);
+}
+
+/* Anillos concéntricos giratorios estilo holograma */
+.holo-ring-1 {
+    position: absolute;
+    bottom: 22px;
+    width: 210px;
+    height: 50px;
+    border-radius: 50%;
+    border: 2px dashed var(--mood-color);
+    box-shadow: 0 0 25px var(--mood-color), inset 0 0 15px var(--mood-color);
+    animation: spinRing 12s linear infinite;
+    opacity: 0.75;
+    pointer-events: none;
+}
+
+.holo-ring-2 {
+    position: absolute;
+    bottom: 30px;
+    width: 150px;
+    height: 36px;
+    border-radius: 50%;
+    border: 1px solid var(--mood-color);
+    box-shadow: 0 0 15px var(--mood-color);
+    animation: spinRingReverse 8s linear infinite;
+    opacity: 0.9;
+    pointer-events: none;
+}
+
+@keyframes spinRing {
+    0% { transform: rotateX(75deg) rotateZ(0deg); }
+    100% { transform: rotateX(75deg) rotateZ(360deg); }
+}
+
+@keyframes spinRingReverse {
+    0% { transform: rotateX(75deg) rotateZ(360deg); }
+    100% { transform: rotateX(75deg) rotateZ(0deg); }
+}
+
+/* Emisor de luz inferior */
+.holo-beam {
+    position: absolute;
+    bottom: 0;
+    width: 170px;
+    height: 120px;
+    background: linear-gradient(0deg, var(--mood-glow) 0%, transparent 100%);
+    filter: blur(14px);
+    pointer-events: none;
+}
+
+/* Ecualizador de audio animado */
+.audio-equalizer {
+    display: flex;
+    align-items: flex-end;
+    gap: 4px;
+    height: 22px;
+    margin-right: 10px;
+}
+
+.audio-bar {
+    width: 3px;
+    background: var(--mood-color);
+    box-shadow: 0 0 8px var(--mood-color);
+    border-radius: 3px;
+    animation: eqPulse 1s ease-in-out infinite alternate;
+}
+
+.audio-bar:nth-child(1) { height: 35%; animation-delay: 0.1s; }
+.audio-bar:nth-child(2) { height: 90%; animation-delay: 0.3s; }
+.audio-bar:nth-child(3) { height: 60%; animation-delay: 0.2s; }
+.audio-bar:nth-child(4) { height: 100%; animation-delay: 0.4s; }
+.audio-bar:nth-child(5) { height: 45%; animation-delay: 0.15s; }
+
+@keyframes eqPulse {
+    0% { transform: scaleY(0.4); }
+    100% { transform: scaleY(1.1); }
+}
+
+/* Medidor visual de polaridad */
+.gauge-track {
+    position: relative;
+    width: 100%;
+    height: 8px;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
+    margin: 8px 0;
+    overflow: visible;
+}
+
+.gauge-pin {
+    position: absolute;
+    top: -5px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #ffffff;
+    border: 3px solid var(--mood-color);
+    box-shadow: 0 0 15px var(--mood-color);
+    transition: left 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+</style>
+""".replace("__COLOR__", response["color"]).replace("__GLOW__", response["glow"])
+
+render_clean_html(MOOD_THEME_CSS)
+
 
 # -----------------------------------------------------------------------------
-# 7. VISTA PRINCIPAL: ROBOT EMBEBIDO DENTRO DE SU TARJETA Y ALINEADO
+# ESCENARIO PRINCIPAL: ROBOT HOLOGRÁFICO & DIÁLOGO SINCRONIZADO
 # -----------------------------------------------------------------------------
-col_robo, col_dialogo = st.columns([1, 1.3], gap="large")
+col_robo, col_dialogo = st.columns([1, 1.25], gap="large")
 
 with col_robo:
-    # Contenedor nativo que envuelve el robot en una tarjeta limpia
-    with st.container(border=True):
-        render_clean_html(
-            f"""
-            <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin-bottom: 4px;">
-                <span style="font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; color: #64d2ff; letter-spacing: 1px;">
-                    ESTADO EN VIVO
-                </span>
-                <span style="font-size: 0.85rem; font-weight: 700; color: {response['color']};">
-                    {response['emoji']} {response['feeling']}
-                </span>
-            </div>
-            """
-        )
-
-        if active_lottie:
-            st.lottie(
-                active_lottie,
-                width=260,
-                height=260,
-                key=f"companion_lottie_{response['marker']}",
-            )
-        else:
-            st.info("Buscando animación Lottie en la carpeta del proyecto...")
-
-        render_clean_html(
-            f"""
-            <div style="text-align: center; margin-top: 4px;">
-                <span style="font-size: 0.8rem; color: #8da4be; font-family: 'JetBrains Mono', monospace;">
-                    Ánimo detectado: {polarity_val:+0.2f}
-                </span>
-            </div>
-            """
-        )
-
-
-with col_dialogo:
+    # Cámara holográfica del robot
     render_clean_html(
         f"""
-        <div class="card-noir" style="border-left: 4px solid {response['color']};">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                <span style="color: {response['color']}; font-weight: 700; font-size: 0.9rem;">
-                    {response['emoji']} TU COMPAÑERO DICE:
-                </span>
-                <span style="font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; background: rgba(0,0,0,0.35); padding: 4px 10px; border-radius: 12px; color: #a4bedc;">
-                    Subjetividad: {subjectivity_val}
-                </span>
-            </div>
+        <div class="cyber-card-outer">
+            <div class="cyber-card-inner" style="padding: 16px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                    <span style="font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; color: {response['color']}; letter-spacing: 2px;">
+                        ● RADAR ACTIVO
+                    </span>
+                    <span style="font-size: 0.85rem; font-weight: 700; color: #ffffff;">
+                        {response['emoji']} {response['feeling']}
+                    </span>
+                </div>
+                <div class="holo-chamber">
+                    <div class="holo-beam"></div>
+                    <div class="holo-ring-1"></div>
+                    <div class="holo-ring-2"></div>
+        """
+    )
 
-            <h2 style="font-size: 1.55rem; font-weight: 700; margin: 0 0 12px 0; color: #ffffff;">
-                {response['title']}
-            </h2>
+    if active_lottie:
+        st.lottie(
+            active_lottie,
+            width=270,
+            height=270,
+            key=f"hologram_robot_{response['marker']}",
+        )
+    else:
+        st.info("Buscando animación Lottie...")
 
-            <div style="font-size: 1.05rem; line-height: 1.6; color: #eaf1fa; background: rgba(0,0,0,0.3); padding: 16px; border-radius: 14px; border: 1px solid rgba(255,255,255,0.06); margin-bottom: 10px;">
-                {response['message'].replace(chr(10), '<br>')}
+    # Puntero para la barra de polaridad (-1 a 1 mapeado a 0% a 100%)
+    pin_percent = int(((polarity_val + 1.0) / 2.0) * 100)
+    pin_percent = max(0, min(100, pin_percent))
+
+    render_clean_html(
+        f"""
+                </div>
+                <div style="margin-top: 14px; padding: 0 8px;">
+                    <div style="display: flex; justify-content: space-between; font-size: 0.75rem; font-family: 'JetBrains Mono'; color: #7f97b2;">
+                        <span>Negativo (-1.0)</span>
+                        <span style="color: {response['color']}; font-weight: 700;">Ánimo: {polarity_val:+0.2f}</span>
+                        <span>Positivo (+1.0)</span>
+                    </div>
+                    <div class="gauge-track">
+                        <div class="gauge-pin" style="left: calc({pin_percent}% - 9px);"></div>
+                    </div>
+                </div>
             </div>
         </div>
         """
     )
 
-    # REPRODUCCIÓN AUTOMÁTICA CON VOZ MASCULINA NEURAL
+
+with col_dialogo:
+    render_clean_html(
+        f"""
+        <div class="cyber-card-outer">
+            <div class="cyber-card-inner">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                    <span style="color: {response['color']}; font-family: 'Orbitron'; font-size: 0.85rem; font-weight: 800; letter-spacing: 1.5px;">
+                        {response['emoji']} TU COMPAÑERO DICE
+                    </span>
+                    <span style="font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; background: rgba(0,0,0,0.4); padding: 5px 12px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.1); color: #c4d7ec;">
+                        Subjetividad: {int(subjectivity_val * 100)}%
+                    </span>
+                </div>
+
+                <h2 style="font-size: 1.55rem; font-weight: 700; margin: 0 0 12px 0; color: #ffffff; text-shadow: 0 0 15px rgba(255,255,255,0.25);">
+                    {response['title']}
+                </h2>
+
+                <div style="font-size: 1.05rem; line-height: 1.6; color: #edf4fc; background: rgba(0,0,0,0.35); padding: 18px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.06); margin-bottom: 12px;">
+                    {response['message'].replace(chr(10), '<br>')}
+                </div>
+            </div>
+        </div>
+        """
+    )
+
+    # REPRODUCCIÓN AUTOMÁTICA CON VOZ MASCULINA NEURAL & ECUALIZADOR ANIMADO
     if user_phrase and user_phrase.strip():
-        # Voz masculina predeterminada: Álvaro (España) o Jorge (México)
         selected_male_voice = st.session_state.get("preferred_voice", "es-ES-AlvaroNeural")
         spoken_text = f"{response['title']}. {response['message']}"
         voice_audio = get_speech_audio(spoken_text, voice_name=selected_male_voice)
 
         if voice_audio:
-            st.caption("🎙️ Voz masculina en reproducción automática:")
-            # Autoplay nativo en Streamlit >= 1.34
+            render_clean_html(
+                f"""
+                <div style="display: flex; align-items: center; margin-top: 4px; margin-bottom: 6px;">
+                    <div class="audio-equalizer">
+                        <div class="audio-bar"></div>
+                        <div class="audio-bar"></div>
+                        <div class="audio-bar"></div>
+                        <div class="audio-bar"></div>
+                        <div class="audio-bar"></div>
+                    </div>
+                    <span style="font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; color: #8da4be;">
+                        Voz neural activa (reproducción automática)
+                    </span>
+                </div>
+                """
+            )
             try:
                 st.audio(voice_audio, format="audio/mp3", autoplay=True)
             except TypeError:
-                # Fallback HTML5 con autoplay para versiones anteriores
                 b64_audio = base64.b64encode(voice_audio).decode("utf-8")
                 render_clean_html(
                     f"""
-                    <audio autoplay controls style="width: 100%; height: 38px; border-radius: 10px; margin-top: 6px;">
+                    <audio autoplay controls style="width: 100%; height: 38px; border-radius: 10px; margin-top: 4px;">
                         <source src="data:audio/mp3;base64,{b64_audio}" type="audio/mp3">
                     </audio>
                     """
                 )
 
-    # Traducción
+    # Traducción Multilingüe
     if translated_display:
         render_clean_html(
             f"""
-            <div style="background: rgba(100, 210, 255, 0.05); border-radius: 12px; padding: 12px 18px; border: 1px solid rgba(100, 210, 255, 0.2); margin-top: 10px;">
-                <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; color: #64d2ff; letter-spacing: 1px;">
-                    TU MENSAJE EN {selected_lang.upper()}:
+            <div style="background: rgba(100, 210, 255, 0.05); border-radius: 14px; padding: 12px 18px; border: 1px solid rgba(100, 210, 255, 0.2); margin-top: 8px;">
+                <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; color: {response['color']}; letter-spacing: 1.5px;">
+                    TRADUCCIÓN ({selected_lang.upper()}):
                 </div>
-                <div style="font-size: 0.95rem; color: #ffffff; margin-top: 4px;">
+                <div style="font-size: 0.95rem; color: #ffffff; margin-top: 3px;">
                     "{translated_display}"
                 </div>
             </div>
@@ -677,10 +704,10 @@ with col_dialogo:
 
 
 # -----------------------------------------------------------------------------
-# 8. BARRA LATERAL: PERSONALIZACIÓN DE VOZ & PARÁMETROS
+# BARRA LATERAL: AJUSTES Y GUÍA
 # -----------------------------------------------------------------------------
 with st.sidebar:
-    st.markdown("### 🎙️ Personalización de Voz")
+    st.markdown("### 🎙️ Configuración de Voz")
     voice_options = {
         "es-ES-AlvaroNeural": "Voz Masculina (Álvaro - España)",
         "es-MX-JorgeNeural": "Voz Masculina (Jorge - México)",
@@ -688,23 +715,20 @@ with st.sidebar:
         "es-AR-TomasNeural": "Voz Masculina (Tomás - Argentina)",
     }
     st.selectbox(
-        label="Selecciona la voz del compañero:",
+        label="Selecciona la voz:",
         options=list(voice_options.keys()),
         format_func=lambda v: voice_options[v],
         key="preferred_voice",
-        help="Voces neurales masculinas generadas automáticamente.",
     )
 
     st.markdown("---")
-    st.markdown("### 💡 ¿Cómo funciona?")
+    st.markdown("### 🔮 Espectro Emocional")
     st.info(
         """
-        **Análisis de Ánimo:**
-        El compañero analiza el texto ingresado para entender cómo te sientes:
-        - **Positivo (> 0):** Celebra contigo y te transmite motivación.
-        - **Triste (< 0):** Te acompaña y te cuenta un chiste para levantarte el ánimo.
-        - **Enojado o Frustrado:** Te brinda palabras de calma y consejos para desconectar.
-        - **Neutral (~ 0):** Conversa de forma tranquila y reflexiva.
+        - **Euforia / Alegría:** Resplandor esmeralda y celebración de logros.
+        - **Tristeza:** Resplandor amatista y dosis de humor reconfortante.
+        - **Tensión / Rabia:** Resplandor carmesí y consejos de respiración y calma.
+        - **Calma:** Resplandor cian y reflexión tranquila.
         """
     )
-    st.caption("NOIR.AI // Python 3.11 // Autoplay Neural Voice")
+    st.caption("NOIR.AI // Python 3.11 // Cyber-Noir Companion")
