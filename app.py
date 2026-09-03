@@ -8,10 +8,10 @@ from streamlit_lottie import st_lottie
 from textblob import TextBlob
 from gtts import gTTS
 
-# Compatibilidad con la sintaxis st.lottie
+# Compatibilidad con la sintaxis st.lottie de las diapositivas
 st.lottie = st_lottie
 
-# Motores de traducción con soporte para Python 3.11
+# Motores de traducción resilientes para Python 3.11
 try:
     from deep_translator import GoogleTranslator
     HAS_DEEP = True
@@ -26,19 +26,18 @@ except Exception:
 
 
 # -----------------------------------------------------------------------------
-# 1. RENDERIZADOR HTML LIMPIO (Evita bloques de código en Markdown)
+# 1. HELPER HTML (Sin sangría para evitar bloques de código de Markdown)
 # -----------------------------------------------------------------------------
 def render_clean_html(html_str: str):
-    """Limpia la indentación para que Streamlit nunca lo interprete como bloque de código."""
     clean = "".join(line.strip() for line in html_str.splitlines() if line.strip())
     st.markdown(clean, unsafe_allow_html=True)
 
 
 # -----------------------------------------------------------------------------
-# 2. CONFIGURACIÓN Y ESTÉTICA GLOWING NOIR
+# 2. CONFIGURACIÓN Y ESTILO GLOWING NOIR (CENTRADO Y EMBEBIDO)
 # -----------------------------------------------------------------------------
 st.set_page_config(
-    page_title="Compañero Emocional",
+    page_title="Tu Compañero Emocional",
     page_icon="🤖",
     layout="wide",
     initial_sidebar_state="collapsed",
@@ -57,6 +56,14 @@ html, body, [data-testid="stAppViewContainer"] {
 
 [data-testid="stHeader"] {
     background: transparent !important;
+}
+
+/* Centrado general para que en pantallas anchas no se disperse */
+.block-container {
+    max-width: 1150px !important;
+    padding-top: 1.8rem !important;
+    padding-bottom: 2.5rem !important;
+    margin: 0 auto !important;
 }
 
 /* Partículas interactivas de fondo */
@@ -78,30 +85,33 @@ html, body, [data-testid="stAppViewContainer"] {
     background: linear-gradient(135deg, #ffffff 10%, #64d2ff 60%, #0077ff 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
-    margin-bottom: 6px;
+    margin-bottom: 4px;
 }
 
+/* Estilo unificado para la tarjeta derecha */
 .card-noir {
     background: rgba(13, 18, 30, 0.75);
     border: 1px solid rgba(100, 210, 255, 0.18);
     border-radius: 20px;
-    padding: 26px;
+    padding: 24px;
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
     box-shadow: 0 15px 40px rgba(0, 0, 0, 0.7);
-    margin-bottom: 20px;
+    margin-bottom: 12px;
 }
 
-.robot-container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    background: radial-gradient(circle at center, rgba(100, 210, 255, 0.08) 0%, rgba(5, 7, 12, 0) 70%);
-    border: 1px solid rgba(100, 210, 255, 0.12);
-    border-radius: 20px;
-    padding: 20px;
-    min-height: 380px;
+/* Estilo que envuelve directamente el contenedor nativo del robot */
+div[data-testid="stVerticalBlockBorderWrapper"] {
+    background: rgba(13, 18, 30, 0.75) !important;
+    border: 1px solid rgba(100, 210, 255, 0.18) !important;
+    border-radius: 20px !important;
+    padding: 20px !important;
+    backdrop-filter: blur(16px) !important;
+    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.7) !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: center !important;
+    align-items: center !important;
 }
 
 /* Centrado y resplandor para el widget de Lottie */
@@ -110,7 +120,7 @@ div[data-testid="stLottie"], iframe[title="streamlit_lottie.st_lottie"] {
     justify-content: center !important;
     align-items: center !important;
     margin: 0 auto !important;
-    filter: drop-shadow(0 0 25px rgba(0, 229, 255, 0.35));
+    filter: drop-shadow(0 0 25px rgba(100, 210, 255, 0.35));
 }
 
 .stTextInput input {
@@ -221,10 +231,7 @@ render_clean_html(NOIR_STYLE)
 # -----------------------------------------------------------------------------
 @st.cache_data
 def load_and_clean_lottie():
-    """
-    Busca el archivo de animación en la ruta del script y en el directorio de trabajo,
-    y desactiva las capas de botones que contiene el JSON original.
-    """
+    """Busca el archivo Lottie y apaga las capas de botones que vienen en la base."""
     search_dirs = []
     try:
         search_dirs.append(os.path.dirname(os.path.abspath(__file__)))
@@ -260,7 +267,7 @@ def load_and_clean_lottie():
         if loaded_json:
             break
 
-    # Búsqueda recursiva en caso de que esté en una subcarpeta
+    # Búsqueda recursiva en subcarpetas
     if not loaded_json:
         for sdir in search_dirs:
             if not sdir or not os.path.isdir(sdir):
@@ -284,7 +291,7 @@ def load_and_clean_lottie():
     if not loaded_json:
         return None
 
-    # Supresión de capas correspondientes a los botones del JSON (capas 1 a 10)
+    # Supresión de capas correspondientes a los botones dibujados (capas 1 a 10)
     clean_anim = copy.deepcopy(loaded_json)
     button_words = ["outlines", "think", "alert", "jump", "yes", "no"]
     clean_layers = []
@@ -292,9 +299,8 @@ def load_and_clean_lottie():
     for layer in clean_anim.get("layers", []):
         name = str(layer.get("nm", "")).strip().lower()
         idx = layer.get("ind", 99)
-        # Las capas de botones en AI robo.json tienen índices del 1 al 10
         if idx <= 10 or any(word in name for word in button_words):
-            layer["hd"] = True  # Oculta la capa a nivel de especificación Lottie
+            layer["hd"] = True
             continue
         clean_layers.append(layer)
 
@@ -306,7 +312,7 @@ base_animation = load_and_clean_lottie()
 
 
 def get_mood_slice(anim_data, marker: str):
-    """Segmenta el inicio y final para reproducir la emoción correspondiente."""
+    """Segmenta los fotogramas para reproducir la emoción correspondiente."""
     if not anim_data:
         return None
 
@@ -367,7 +373,7 @@ def get_speech_audio(text: str, lang: str = "es") -> bytes:
 
 
 # -----------------------------------------------------------------------------
-# 5. MENSAJES AMIGABLES Y EMPÁTICOS (Sin tecnicismos)
+# 5. MENSAJES AMIGABLES Y EMPÁTICOS
 # -----------------------------------------------------------------------------
 CHISTES = [
     "—Papá, ¿qué se siente tener un hijo tan inteligente? —No sé hijo, pregúntale a tu abuelo.",
@@ -407,10 +413,8 @@ EXCITED_WORDS = [
 
 
 def analyze_conversation(user_text: str, polarity: float, subjectivity: float):
-    """Genera respuestas cálidas y selecciona la animación del compañero."""
     lower_text = user_text.lower()
 
-    # Enfadado / Frustrado
     if any(k in lower_text for k in ANGER_WORDS) or (polarity < -0.3 and subjectivity > 0.6):
         return {
             "title": "Respira hondo, aquí estoy contigo...",
@@ -421,7 +425,6 @@ def analyze_conversation(user_text: str, polarity: float, subjectivity: float):
             "message": random.choice(CONSEJOS_CALMA),
         }
 
-    # Eufórico / Muy feliz
     if any(k in lower_text for k in EXCITED_WORDS) or (polarity >= 0.5):
         return {
             "title": "¡Qué gran noticia, me alegro mucho!",
@@ -432,7 +435,6 @@ def analyze_conversation(user_text: str, polarity: float, subjectivity: float):
             "message": random.choice(MOTIVACIONES),
         }
 
-    # Positivo
     if polarity > 0.05:
         return {
             "title": "¡Qué gusto leer esto!",
@@ -443,7 +445,6 @@ def analyze_conversation(user_text: str, polarity: float, subjectivity: float):
             "message": random.choice(MOTIVACIONES),
         }
 
-    # Triste / Desanimado
     if polarity < -0.05:
         return {
             "title": "Un abrazo fuerte... déjame sacarte una sonrisa",
@@ -454,7 +455,6 @@ def analyze_conversation(user_text: str, polarity: float, subjectivity: float):
             "message": f"Siento que no estés teniendo el mejor día. Para animarte un poco, mira este chiste:\n\n{random.choice(CHISTES)}",
         }
 
-    # Neutral
     return {
         "title": "Te escucho con atención...",
         "feeling": "Tranquilo y reflexivo",
@@ -470,9 +470,9 @@ def analyze_conversation(user_text: str, polarity: float, subjectivity: float):
 # -----------------------------------------------------------------------------
 render_clean_html(
     """
-    <div style="text-align: center; margin-top: 10px; margin-bottom: 25px;">
+    <div style="text-align: center; margin-top: 5px; margin-bottom: 22px;">
         <div class="title-glow">TU COMPAÑERO EMOCIONAL</div>
-        <p style="color: #8da4be; font-size: 1rem; margin-top: 2px;">
+        <p style="color: #8da4be; font-size: 0.95rem; margin-top: 2px;">
             Escribe cómo te sientes o cómo fue tu día y presiona Enter para conversar.
         </p>
     </div>
@@ -526,40 +526,55 @@ else:
         "message": "Cuéntame lo que estás sintiendo o lo que hiciste hoy. Te escucharé con atención y aquí estaré para responderte.",
     }
 
-# Preparación de la animación sin botones
+# Preparación de la animación
 active_lottie = get_mood_slice(base_animation, response["marker"])
 
 
 # -----------------------------------------------------------------------------
-# 7. VISTA PRINCIPAL: ROBOT Y CONVERSACIÓN ALINEADOS
+# 7. VISTA PRINCIPAL: ROBOT EMBEBIDO DENTRO DE SU TARJETA Y ALINEADO
 # -----------------------------------------------------------------------------
-col_robo, col_dialogo = st.columns([1, 1.2], gap="large")
+col_robo, col_dialogo = st.columns([1, 1.3], gap="large")
 
 with col_robo:
-    # Contenedor del robot alineado al contenido adyacente
-    render_clean_html('<div class="robot-container">')
-
-    if active_lottie:
-        st.lottie(
-            active_lottie,
-            width=320,
-            key=f"companion_lottie_{response['marker']}",
+    # Contenedor nativo que envuelve el robot y su estado en UNA sola tarjeta
+    with st.container(border=True):
+        render_clean_html(
+            f"""
+            <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin-bottom: 4px;">
+                <span style="font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; color: #64d2ff; letter-spacing: 1px;">
+                    ESTADO EN VIVO
+                </span>
+                <span style="font-size: 0.85rem; font-weight: 700; color: {response['color']};">
+                    {response['emoji']} {response['feeling']}
+                </span>
+            </div>
+            """
         )
-    else:
-        st.info("Buscando animación Lottie en la carpeta del proyecto...")
 
-    render_clean_html(
-        f"""
-        <div style="font-size: 0.95rem; font-weight: 600; color: {response['color']}; margin-top: 10px;">
-            {response['emoji']} {response['feeling']}
-        </div>
-        </div>
-        """
-    )
+        if active_lottie:
+            # st.lottie dentro del cuadro diseñado, centrado y a la altura del texto
+            st.lottie(
+                active_lottie,
+                width=260,
+                height=260,
+                key=f"companion_lottie_{response['marker']}",
+            )
+        else:
+            st.info("Buscando animación Lottie en la carpeta del proyecto...")
+
+        render_clean_html(
+            f"""
+            <div style="text-align: center; margin-top: 4px;">
+                <span style="font-size: 0.8rem; color: #8da4be; font-family: 'JetBrains Mono', monospace;">
+                    Ánimo detectado: {polarity_val:+0.2f}
+                </span>
+            </div>
+            """
+        )
 
 
 with col_dialogo:
-    # Tarjeta de diálogo limpia y legible
+    # Tarjeta de diálogo a la misma altura exacta
     render_clean_html(
         f"""
         <div class="card-noir" style="border-left: 4px solid {response['color']};">
@@ -568,22 +583,22 @@ with col_dialogo:
                     {response['emoji']} TU COMPAÑERO DICE:
                 </span>
                 <span style="font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; background: rgba(0,0,0,0.35); padding: 4px 10px; border-radius: 12px; color: #a4bedc;">
-                    Ánimo: {polarity_val:+0.2f}
+                    Subjetividad: {subjectivity_val}
                 </span>
             </div>
 
-            <h2 style="font-size: 1.55rem; font-weight: 700; margin: 0 0 14px 0; color: #ffffff;">
+            <h2 style="font-size: 1.55rem; font-weight: 700; margin: 0 0 12px 0; color: #ffffff;">
                 {response['title']}
             </h2>
 
-            <div style="font-size: 1.05rem; line-height: 1.6; color: #eaf1fa; background: rgba(0,0,0,0.3); padding: 18px; border-radius: 14px; border: 1px solid rgba(255,255,255,0.06); margin-bottom: 14px;">
+            <div style="font-size: 1.05rem; line-height: 1.6; color: #eaf1fa; background: rgba(0,0,0,0.3); padding: 16px; border-radius: 14px; border: 1px solid rgba(255,255,255,0.06); margin-bottom: 10px;">
                 {response['message'].replace(chr(10), '<br>')}
             </div>
         </div>
         """
     )
 
-    # Reproductor de voz del mensaje
+    # Reproductor de voz
     if user_phrase and user_phrase.strip():
         spoken_text = f"{response['title']}. {response['message']}"
         voice_audio = get_speech_audio(spoken_text, lang="es")
@@ -591,7 +606,7 @@ with col_dialogo:
             st.caption("🔊 Escuchar la respuesta:")
             st.audio(voice_audio, format="audio/mp3")
 
-    # Traducción de la frase del usuario
+    # Traducción
     if translated_display:
         render_clean_html(
             f"""
