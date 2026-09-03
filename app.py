@@ -382,7 +382,7 @@ with chip_cols[0]:
 
 with chip_cols[1]:
     if st.button("😊 Todo está bien", use_container_width=True, help="Activa YES (Verde)"):
-        set_quick_phrase("Me siento muy feliz, todo va excelente hoy.")
+        set_quick_phrase("Me siento muy feliz, todo va bien hoy.")
         st.rerun()
 
 with chip_cols[2]:
@@ -391,8 +391,8 @@ with chip_cols[2]:
         st.rerun()
 
 with chip_cols[3]:
-    if st.button("🛑 Qué mal desastre", use_container_width=True, help="Activa NO (Rojo)"):
-        set_quick_phrase("No me gusta esto, es un pésimo desastre.")
+    if st.button("🛑 Es un desastre", use_container_width=True, help="Activa NO (Rojo)"):
+        set_quick_phrase("No me gusta esto, es un pésimo desastre y tengo mucha ira")
         st.rerun()
 
 with chip_cols[4]:
