@@ -392,12 +392,12 @@ with chip_cols[2]:
 
 with chip_cols[3]:
     if st.button("🛑 Es un desastre", use_container_width=True):
-        set_quick_phrase("Todo es un pésimo desastre y tengo mucha ira)
+        set_quick_phrase("Todo es un pésimo desastre y tengo mucha ira.")
         st.rerun()
 
 with chip_cols[4]:
     if st.button("🔮 Pensando dudas", use_container_width=True):
-        set_quick_phrase("Estoy pensando y analizando qué decisión tomar.)
+        set_quick_phrase("Estoy pensando y analizando qué decisión tomar.")
         st.rerun()
 
 st.write("")
