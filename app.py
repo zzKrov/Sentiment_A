@@ -11,7 +11,7 @@ from streamlit_lottie import st_lottie
 from textblob import TextBlob
 from gtts import gTTS
 
-# Compatibilidad con la sintaxis st.lottie
+# Compatibilidad con la sintaxis st.lottie de las diapositivas
 st.lottie = st_lottie
 
 # -----------------------------------------------------------------------------
@@ -37,7 +37,7 @@ except Exception:
 
 
 def run_async(coro):
-    """Ejecuta corrutinas de forma segura sin colisionar con el bucle de eventos de Streamlit."""
+    """Ejecuta corrutinas de forma segura sin interferir con el bucle de eventos de Streamlit."""
     try:
         loop = asyncio.get_running_loop()
     except RuntimeError:
@@ -83,7 +83,7 @@ def get_speech_audio(text: str, voice_name: str = "es-ES-AlvaroNeural") -> bytes
 
 
 def render_clean_html(html_str: str):
-    """Elimina sangrías para evitar bloques de código accidentales en Markdown."""
+    """Limpia la indentación para evitar que Markdown genere bloques de código."""
     clean = "".join(line.strip() for line in html_str.splitlines() if line.strip())
     st.markdown(clean, unsafe_allow_html=True)
 
@@ -92,7 +92,7 @@ def render_clean_html(html_str: str):
 # CONFIGURACIÓN DE PÁGINA
 # -----------------------------------------------------------------------------
 st.set_page_config(
-    page_title="Tu Compañero Emocional",
+    page_title="Compañero Emocional // Cyber-Noir",
     page_icon="🤖",
     layout="wide",
     initial_sidebar_state="collapsed",
@@ -163,7 +163,7 @@ def load_and_clean_lottie():
     if not loaded_json:
         return None
 
-    # Ocultar y remover capas 1 a 10 (botones dibujados en la base del JSON)
+    # Ocultar capas 1 a 10 (botones dibujados en la base del JSON)
     clean_anim = copy.deepcopy(loaded_json)
     button_words = ["outlines", "think", "alert", "jump", "yes", "no"]
     clean_layers = []
@@ -275,11 +275,11 @@ def analyze_conversation(user_text: str, polarity: float, subjectivity: float):
     if any(k in lower_text for k in ANGER_WORDS) or (polarity < -0.3 and subjectivity > 0.6):
         return {
             "title": "Respira hondo, aquí estoy contigo...",
-            "feeling": "Noté algo de frustración",
+            "feeling": "Tensión detectada",
             "emoji": "🌿",
             "marker": "alert",
             "color": "#ff3366",
-            "glow": "rgba(255, 51, 102, 0.35)",
+            "glow": "rgba(255, 51, 102, 0.45)",
             "message": random.choice(CONSEJOS_CALMA),
         }
 
@@ -290,7 +290,7 @@ def analyze_conversation(user_text: str, polarity: float, subjectivity: float):
             "emoji": "🎉",
             "marker": "jump",
             "color": "#00ff88",
-            "glow": "rgba(0, 255, 136, 0.35)",
+            "glow": "rgba(0, 255, 136, 0.45)",
             "message": random.choice(MOTIVACIONES),
         }
 
@@ -301,18 +301,18 @@ def analyze_conversation(user_text: str, polarity: float, subjectivity: float):
             "emoji": "😊",
             "marker": "yes",
             "color": "#00e5ff",
-            "glow": "rgba(0, 229, 255, 0.35)",
+            "glow": "rgba(0, 229, 255, 0.45)",
             "message": random.choice(MOTIVACIONES),
         }
 
     if polarity < -0.05:
         return {
             "title": "Un abrazo fuerte... déjame sacarte una sonrisa",
-            "feeling": "Parece un momento difícil",
+            "feeling": "Momento difícil",
             "emoji": "💛",
             "marker": "no",
             "color": "#bf5af2",
-            "glow": "rgba(191, 90, 242, 0.35)",
+            "glow": "rgba(191, 90, 242, 0.45)",
             "message": f"Siento que no estés teniendo el mejor día. Para animarte un poco, mira este chiste:\n\n{random.choice(CHISTES)}",
         }
 
@@ -322,13 +322,13 @@ def analyze_conversation(user_text: str, polarity: float, subjectivity: float):
         "emoji": "💬",
         "marker": "thinking",
         "color": "#64d2ff",
-        "glow": "rgba(100, 210, 255, 0.3)",
+        "glow": "rgba(100, 210, 255, 0.4)",
         "message": random.choice(CONVERSACION_NEUTRAL),
     }
 
 
 # -----------------------------------------------------------------------------
-# ESTADO DE SESIÓN (Para pruebas rápidas)
+# ESTADO DE SESIÓN (Para chips interactivos)
 # -----------------------------------------------------------------------------
 if "phrase_input" not in st.session_state:
     st.session_state.phrase_input = ""
@@ -339,226 +339,7 @@ def set_quick_phrase(phrase: str):
 
 
 # -----------------------------------------------------------------------------
-# ESTILO Y PARTICULAS
-# -----------------------------------------------------------------------------
-NOIR_BASE_STYLE = r"""
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
-
-html, body, [data-testid="stAppViewContainer"] {
-    background-color: #05070c !important;
-    color: #e6edf5 !important;
-    font-family: 'Plus Jakarta Sans', sans-serif !important;
-    overflow-x: hidden;
-}
-
-[data-testid="stHeader"] {
-    background: transparent !important;
-}
-
-.block-container {
-    max-width: 1150px !important;
-    padding-top: 1.8rem !important;
-    padding-bottom: 2.5rem !important;
-    margin: 0 auto !important;
-}
-
-#noir-canvas-bg {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    z-index: 0;
-    pointer-events: none;
-}
-
-.title-glow {
-    font-family: 'Orbitron', sans-serif;
-    font-size: 2.3rem;
-    font-weight: 800;
-    letter-spacing: 2px;
-    background: linear-gradient(135deg, #ffffff 10%, #64d2ff 60%, #0077ff 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    margin-bottom: 4px;
-}
-
-.card-noir {
-    background: rgba(11, 16, 28, 0.88);
-    border: 1px solid rgba(100, 210, 255, 0.2);
-    border-radius: 24px;
-    padding: 24px;
-    backdrop-filter: blur(20px);
-    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.7);
-    margin-bottom: 12px;
-}
-
-/* El widget de Lottie centrado sin desbordes */
-div[data-testid="stLottie"], iframe[title="streamlit_lottie.st_lottie"] {
-    display: flex !important;
-    justify-content: center !important;
-    align-items: center !important;
-    margin: 0 auto !important;
-    filter: drop-shadow(0 0 25px var(--mood-glow));
-}
-
-.stTextInput input {
-    background: rgba(13, 19, 33, 0.85) !important;
-    border: 1px solid rgba(100, 210, 255, 0.25) !important;
-    border-radius: 14px !important;
-    color: #ffffff !important;
-    font-size: 1.05rem !important;
-    padding: 14px 18px !important;
-}
-
-.stTextInput input:focus {
-    border-color: #64d2ff !important;
-    box-shadow: 0 0 20px rgba(100, 210, 255, 0.35) !important;
-}
-
-/* Ecualizador de audio */
-.audio-equalizer {
-    display: flex;
-    align-items: flex-end;
-    gap: 4px;
-    height: 20px;
-    margin-right: 10px;
-}
-
-.audio-bar {
-    width: 3px;
-    background: var(--mood-color);
-    box-shadow: 0 0 8px var(--mood-color);
-    border-radius: 3px;
-    animation: eqPulse 1s ease-in-out infinite alternate;
-}
-
-.audio-bar:nth-child(1) { height: 35%; animation-delay: 0.1s; }
-.audio-bar:nth-child(2) { height: 90%; animation-delay: 0.3s; }
-.audio-bar:nth-child(3) { height: 60%; animation-delay: 0.2s; }
-.audio-bar:nth-child(4) { height: 100%; animation-delay: 0.4s; }
-.audio-bar:nth-child(5) { height: 45%; animation-delay: 0.15s; }
-
-@keyframes eqPulse {
-    0% { transform: scaleY(0.4); }
-    100% { transform: scaleY(1.1); }
-}
-
-/* Medidor visual de polaridad */
-.gauge-track {
-    position: relative;
-    width: 100%;
-    height: 8px;
-    background: rgba(255, 255, 255, 0.08);
-    border-radius: 8px;
-    margin: 8px 0;
-    overflow: visible;
-}
-
-.gauge-pin {
-    position: absolute;
-    top: -5px;
-    width: 18px;
-    height: 18px;
-    border-radius: 50%;
-    background: #ffffff;
-    border: 3px solid var(--mood-color);
-    box-shadow: 0 0 15px var(--mood-color);
-    transition: left 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-</style>
-
-<canvas id="noir-canvas-bg"></canvas>
-
-<script>
-(function() {
-    const canvas = document.getElementById('noir-canvas-bg');
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    let w = canvas.width = window.innerWidth;
-    let h = canvas.height = window.innerHeight;
-
-    window.addEventListener('resize', () => {
-        w = canvas.width = window.innerWidth;
-        h = canvas.height = window.innerHeight;
-    });
-
-    const particles = [];
-    const trail = [];
-
-    window.addEventListener('mousemove', (e) => {
-        for (let i = 0; i < 2; i++) {
-            trail.push({
-                x: e.clientX + (Math.random() - 0.5) * 6,
-                y: e.clientY + (Math.random() - 0.5) * 6,
-                size: Math.random() * 2.5 + 1,
-                alpha: 0.85,
-                decay: Math.random() * 0.025 + 0.015,
-                vx: (Math.random() - 0.5) * 1.2,
-                vy: (Math.random() - 0.5) * 1.2
-            });
-        }
-    });
-
-    for (let i = 0; i < 50; i++) {
-        particles.push({
-            x: Math.random() * w,
-            y: Math.random() * h,
-            r: Math.random() * 1.5 + 0.5,
-            vx: (Math.random() - 0.5) * 0.2,
-            vy: (Math.random() - 0.5) * 0.2,
-            alpha: Math.random() * 0.5 + 0.2
-        });
-    }
-
-    function animate() {
-        ctx.clearRect(0, 0, w, h);
-
-        for (let p of particles) {
-            p.x += p.vx;
-            p.y += p.vy;
-            if (p.x < 0) p.x = w;
-            if (p.x > w) p.x = 0;
-            if (p.y < 0) p.y = h;
-            if (p.y > h) p.y = 0;
-
-            ctx.beginPath();
-            ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-            ctx.fillStyle = "rgba(100, 210, 255, " + (p.alpha * 0.3) + ")";
-            ctx.shadowBlur = 6;
-            ctx.shadowColor = "#64d2ff";
-            ctx.fill();
-        }
-
-        for (let i = trail.length - 1; i >= 0; i--) {
-            const t = trail[i];
-            t.x += t.vx;
-            t.y += t.vy;
-            t.alpha -= t.decay;
-            if (t.alpha <= 0) {
-                trail.splice(i, 1);
-                continue;
-            }
-            ctx.beginPath();
-            ctx.arc(t.x, t.y, t.size, 0, Math.PI * 2);
-            ctx.fillStyle = "rgba(0, 240, 255, " + (t.alpha * 0.6) + ")";
-            ctx.shadowBlur = 10;
-            ctx.shadowColor = "#00f0ff";
-            ctx.fill();
-        }
-        requestAnimationFrame(animate);
-    }
-    animate();
-})();
-</script>
-"""
-
-render_clean_html(NOIR_BASE_STYLE)
-
-
-# -----------------------------------------------------------------------------
-# ENCABEZADO Y ENTRADA PRINCIPAL
+# ENCABEZADO Y CHIPS RÁPIDOS
 # -----------------------------------------------------------------------------
 render_clean_html(
     """
@@ -571,7 +352,7 @@ render_clean_html(
     """
 )
 
-# Chips de prueba rápida
+# Chips de prueba rápida con hover effects
 render_clean_html(
     """
     <div style="text-align: center; margin-bottom: 12px;">
@@ -605,7 +386,7 @@ with chip_cols[3]:
 
 st.write("")
 
-# Controles de entrada
+# Controles de Entrada
 col_input, col_target = st.columns([3.2, 1], gap="medium")
 
 with col_input:
@@ -650,33 +431,415 @@ else:
         "emoji": "👋",
         "marker": "idle",
         "color": "#00f0ff",
-        "glow": "rgba(0, 240, 255, 0.3)",
+        "glow": "rgba(0, 240, 255, 0.4)",
         "message": "Cuéntame lo que estás sintiendo o cómo estuvo tu día. Aquí estaré listo para acompañarte y responderte.",
     }
 
 active_lottie = get_mood_slice(base_animation, response["marker"])
 
-# Inyección de variables de color del estado activo
-render_clean_html(
-    f"""
-    <style>
-    :root {{
-        --mood-color: {response['color']};
-        --mood-glow: {response['glow']};
-    }}
-    /* Estilizado del contenedor nativo para envolver al robot de forma 100% contenida */
-    div[data-testid="stVerticalBlockBorderWrapper"] {{
-        background: rgba(11, 16, 28, 0.92) !important;
-        border: 2px solid var(--mood-color) !important;
-        border-radius: 24px !important;
-        padding: 20px !important;
-        backdrop-filter: blur(20px) !important;
-        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.7), 0 0 35px var(--mood-glow) !important;
-        transition: all 0.5s ease !important;
-    }}
-    </style>
-    """
-)
+
+# -----------------------------------------------------------------------------
+# ESTÉTICA "OVER THE TOP" // CSS DINÁMICO & CANVAS DE CONSTELACIONES
+# -----------------------------------------------------------------------------
+NOIR_FULL_FX = r"""
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+:root {
+    --mood-color: __COLOR__;
+    --mood-glow: __GLOW__;
+}
+
+/* Base transparente para visibilidad total de partículas */
+html, body, [data-testid="stAppViewContainer"] {
+    background-color: #05070c !important;
+    color: #e6edf5 !important;
+    font-family: 'Plus Jakarta Sans', sans-serif !important;
+    overflow-x: hidden;
+}
+
+[data-testid="stHeader"] {
+    background: transparent !important;
+}
+
+.block-container {
+    max-width: 1150px !important;
+    padding-top: 1.8rem !important;
+    padding-bottom: 2.5rem !important;
+    margin: 0 auto !important;
+}
+
+/* Lienzo de Fondo de Partículas */
+#noir-canvas-bg {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 0;
+    pointer-events: none;
+}
+
+.title-glow {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 2.3rem;
+    font-weight: 800;
+    letter-spacing: 2px;
+    background: linear-gradient(135deg, #ffffff 10%, var(--mood-color) 60%, #ffffff 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-shadow: 0 0 35px var(--mood-glow);
+    margin-bottom: 4px;
+    transition: all 0.5s ease;
+}
+
+/* Tarjeta de diálogo izquierda con borde luminoso reactivo */
+.card-noir-dialogue {
+    position: relative;
+    background: linear-gradient(135deg, rgba(13, 19, 33, 0.92) 0%, rgba(8, 12, 22, 0.95) 100%);
+    border: 1.5px solid var(--mood-color);
+    border-radius: 24px;
+    padding: 26px;
+    backdrop-filter: blur(20px);
+    box-shadow: 0 15px 45px rgba(0, 0, 0, 0.8), 0 0 30px var(--mood-glow), inset 0 0 20px var(--mood-glow);
+    transition: transform 0.4s ease, box-shadow 0.4s ease;
+}
+
+.card-noir-dialogue:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 20px 55px rgba(0, 0, 0, 0.9), 0 0 45px var(--mood-glow), inset 0 0 25px var(--mood-glow);
+}
+
+/* CONTENEDOR NATIVO DERECHO: El robot queda 100% adentro */
+div[data-testid="stVerticalBlockBorderWrapper"] {
+    position: relative !important;
+    background: linear-gradient(135deg, rgba(13, 19, 33, 0.92) 0%, rgba(8, 12, 22, 0.96) 100%) !important;
+    border: 2px solid var(--mood-color) !important;
+    border-radius: 24px !important;
+    padding: 20px 20px 16px 20px !important;
+    backdrop-filter: blur(20px) !important;
+    box-shadow: 0 15px 45px rgba(0, 0, 0, 0.8), 0 0 35px var(--mood-glow), inset 0 0 25px var(--mood-glow) !important;
+    transition: transform 0.4s ease, box-shadow 0.4s ease, border-color 0.4s ease !important;
+}
+
+div[data-testid="stVerticalBlockBorderWrapper"]:hover {
+    transform: translateY(-3px) !important;
+    box-shadow: 0 20px 55px rgba(0, 0, 0, 0.9), 0 0 50px var(--mood-glow), inset 0 0 30px var(--mood-glow) !important;
+}
+
+/* Centrado y resplandor para el widget de Lottie */
+div[data-testid="stLottie"], iframe[title="streamlit_lottie.st_lottie"] {
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    margin: 0 auto !important;
+    filter: drop-shadow(0 0 28px var(--mood-glow));
+    transition: filter 0.5s ease;
+}
+
+/* Botones rápidos interactivos */
+.stButton > button {
+    background: rgba(13, 19, 33, 0.85) !important;
+    border: 1px solid rgba(100, 210, 255, 0.25) !important;
+    border-radius: 30px !important;
+    color: #e4edf8 !important;
+    font-family: 'JetBrains Mono', monospace !important;
+    font-size: 0.82rem !important;
+    padding: 8px 16px !important;
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.4) !important;
+}
+
+.stButton > button:hover {
+    border-color: var(--mood-color) !important;
+    box-shadow: 0 0 25px var(--mood-glow), inset 0 0 10px var(--mood-glow) !important;
+    transform: translateY(-2px) scale(1.02) !important;
+    color: #ffffff !important;
+}
+
+/* Campo de entrada de texto */
+.stTextInput input {
+    background: rgba(13, 19, 33, 0.85) !important;
+    border: 1.5px solid rgba(100, 210, 255, 0.25) !important;
+    border-radius: 14px !important;
+    color: #ffffff !important;
+    font-size: 1.05rem !important;
+    padding: 14px 18px !important;
+    box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.7) !important;
+}
+
+.stTextInput input:focus {
+    border-color: var(--mood-color) !important;
+    box-shadow: 0 0 25px var(--mood-glow), inset 0 0 12px var(--mood-glow) !important;
+}
+
+/* Pedestal Holográfico 3D bajo el robot */
+.holo-base {
+    position: relative;
+    width: 100%;
+    height: 38px;
+    margin-top: -24px;
+    margin-bottom: 12px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    perspective: 600px;
+}
+
+.holo-emitter-beam {
+    position: absolute;
+    bottom: 0;
+    width: 180px;
+    height: 65px;
+    background: radial-gradient(ellipse at bottom, var(--mood-glow) 0%, transparent 75%);
+    filter: blur(10px);
+    pointer-events: none;
+}
+
+.holo-ring-outer {
+    position: absolute;
+    width: 220px;
+    height: 48px;
+    border-radius: 50%;
+    border: 2px dashed var(--mood-color);
+    box-shadow: 0 0 20px var(--mood-color), inset 0 0 10px var(--mood-color);
+    animation: spinClockwise 10s linear infinite;
+    opacity: 0.85;
+}
+
+.holo-ring-inner {
+    position: absolute;
+    width: 140px;
+    height: 30px;
+    border-radius: 50%;
+    border: 1.5px solid var(--mood-color);
+    box-shadow: 0 0 15px var(--mood-color);
+    animation: spinCounterClockwise 6s linear infinite;
+    opacity: 0.95;
+}
+
+@keyframes spinClockwise {
+    0% { transform: rotateX(75deg) rotateZ(0deg); }
+    100% { transform: rotateX(75deg) rotateZ(360deg); }
+}
+
+@keyframes spinCounterClockwise {
+    0% { transform: rotateX(75deg) rotateZ(360deg); }
+    100% { transform: rotateX(75deg) rotateZ(0deg); }
+}
+
+/* Ecualizador de audio */
+.audio-equalizer {
+    display: flex;
+    align-items: flex-end;
+    gap: 4px;
+    height: 22px;
+    margin-right: 12px;
+}
+
+.audio-bar {
+    width: 3.5px;
+    background: var(--mood-color);
+    box-shadow: 0 0 10px var(--mood-color);
+    border-radius: 3px;
+    animation: eqPulse 0.9s ease-in-out infinite alternate;
+}
+
+.audio-bar:nth-child(1) { height: 35%; animation-delay: 0.1s; }
+.audio-bar:nth-child(2) { height: 95%; animation-delay: 0.3s; }
+.audio-bar:nth-child(3) { height: 60%; animation-delay: 0.2s; }
+.audio-bar:nth-child(4) { height: 100%; animation-delay: 0.4s; }
+.audio-bar:nth-child(5) { height: 45%; animation-delay: 0.15s; }
+
+@keyframes eqPulse {
+    0% { transform: scaleY(0.35); }
+    100% { transform: scaleY(1.15); }
+}
+
+/* Medidor visual de polaridad */
+.gauge-track {
+    position: relative;
+    width: 100%;
+    height: 8px;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
+    margin: 8px 0;
+    overflow: visible;
+}
+
+.gauge-pin {
+    position: absolute;
+    top: -5px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #ffffff;
+    border: 3px solid var(--mood-color);
+    box-shadow: 0 0 16px var(--mood-color);
+    transition: left 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+</style>
+
+<canvas id="noir-canvas-bg"></canvas>
+
+<script>
+(function() {
+    const canvas = document.getElementById('noir-canvas-bg');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    let w = canvas.width = window.innerWidth;
+    let h = canvas.height = window.innerHeight;
+
+    window.addEventListener('resize', () => {
+        w = canvas.width = window.innerWidth;
+        h = canvas.height = window.innerHeight;
+    });
+
+    const particles = [];
+    const trail = [];
+    const shockwaves = [];
+    const mouse = { x: -1000, y: -1000 };
+
+    window.addEventListener('mousemove', (e) => {
+        mouse.x = e.clientX;
+        mouse.y = e.clientY;
+        for (let i = 0; i < 2; i++) {
+            trail.push({
+                x: e.clientX + (Math.random() - 0.5) * 6,
+                y: e.clientY + (Math.random() - 0.5) * 6,
+                size: Math.random() * 2.8 + 1,
+                alpha: 0.9,
+                decay: Math.random() * 0.025 + 0.015,
+                vx: (Math.random() - 0.5) * 1.2,
+                vy: (Math.random() - 0.5) * 1.2
+            });
+        }
+    });
+
+    // Shockwave interactiva al hacer clic
+    window.addEventListener('click', (e) => {
+        shockwaves.push({
+            x: e.clientX,
+            y: e.clientY,
+            radius: 5,
+            maxRadius: 180,
+            alpha: 1
+        });
+    });
+
+    for (let i = 0; i < 55; i++) {
+        particles.push({
+            x: Math.random() * w,
+            y: Math.random() * h,
+            r: Math.random() * 1.8 + 0.6,
+            vx: (Math.random() - 0.5) * 0.35,
+            vy: (Math.random() - 0.5) * 0.35,
+            alpha: Math.random() * 0.5 + 0.3
+        });
+    }
+
+    function animate() {
+        ctx.clearRect(0, 0, w, h);
+
+        const currentThemeColor = getComputedStyle(document.documentElement).getPropertyValue('--mood-color').trim() || '#00e5ff';
+
+        // 1. Dibujar y conectar constelaciones
+        for (let i = 0; i < particles.length; i++) {
+            const p = particles[i];
+            p.x += p.vx;
+            p.y += p.vy;
+            if (p.x < 0) p.x = w;
+            if (p.x > w) p.x = 0;
+            if (p.y < 0) p.y = h;
+            if (p.y > h) p.y = 0;
+
+            // Conexión con el mouse
+            const distMouse = Math.hypot(p.x - mouse.x, p.y - mouse.y);
+            if (distMouse < 130) {
+                ctx.beginPath();
+                ctx.moveTo(p.x, p.y);
+                ctx.lineTo(mouse.x, mouse.y);
+                ctx.strokeStyle = currentThemeColor;
+                ctx.globalAlpha = (1 - distMouse / 130) * 0.35;
+                ctx.lineWidth = 0.8;
+                ctx.stroke();
+                ctx.globalAlpha = 1;
+            }
+
+            // Conexiones entre partículas
+            for (let j = i + 1; j < particles.length; j++) {
+                const p2 = particles[j];
+                const d = Math.hypot(p.x - p2.x, p.y - p2.y);
+                if (d < 110) {
+                    ctx.beginPath();
+                    ctx.moveTo(p.x, p.y);
+                    ctx.lineTo(p2.x, p2.y);
+                    ctx.strokeStyle = currentThemeColor;
+                    ctx.globalAlpha = (1 - d / 110) * 0.2;
+                    ctx.lineWidth = 0.6;
+                    ctx.stroke();
+                    ctx.globalAlpha = 1;
+                }
+            }
+
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+            ctx.fillStyle = currentThemeColor;
+            ctx.globalAlpha = p.alpha;
+            ctx.shadowBlur = 8;
+            ctx.shadowColor = currentThemeColor;
+            ctx.fill();
+            ctx.globalAlpha = 1;
+        }
+
+        // 2. Ondas de choque (Shockwaves)
+        for (let i = shockwaves.length - 1; i >= 0; i--) {
+            const sw = shockwaves[i];
+            sw.radius += 4;
+            sw.alpha -= 0.02;
+            if (sw.alpha <= 0 || sw.radius >= sw.maxRadius) {
+                shockwaves.splice(i, 1);
+                continue;
+            }
+            ctx.beginPath();
+            ctx.arc(sw.x, sw.y, sw.radius, 0, Math.PI * 2);
+            ctx.strokeStyle = currentThemeColor;
+            ctx.globalAlpha = sw.alpha * 0.7;
+            ctx.lineWidth = 2;
+            ctx.shadowBlur = 15;
+            ctx.shadowColor = currentThemeColor;
+            ctx.stroke();
+            ctx.globalAlpha = 1;
+        }
+
+        // 3. Estela del cursor
+        for (let i = trail.length - 1; i >= 0; i--) {
+            const t = trail[i];
+            t.x += t.vx;
+            t.y += t.vy;
+            t.alpha -= t.decay;
+            if (t.alpha <= 0) {
+                trail.splice(i, 1);
+                continue;
+            }
+            ctx.beginPath();
+            ctx.arc(t.x, t.y, t.size, 0, Math.PI * 2);
+            ctx.fillStyle = currentThemeColor;
+            ctx.globalAlpha = t.alpha;
+            ctx.shadowBlur = 12;
+            ctx.shadowColor = currentThemeColor;
+            ctx.fill();
+            ctx.globalAlpha = 1;
+        }
+
+        requestAnimationFrame(animate);
+    }
+    animate();
+})();
+</script>
+""".replace("__COLOR__", response["color"]).replace("__GLOW__", response["glow"])
+
+render_clean_html(NOIR_FULL_FX)
 
 
 # -----------------------------------------------------------------------------
@@ -688,7 +851,7 @@ col_dialogo, col_robo = st.columns([1.25, 1], gap="large")
 with col_dialogo:
     render_clean_html(
         f"""
-        <div class="card-noir" style="border-left: 4px solid {response['color']};">
+        <div class="card-noir-dialogue">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
                 <span style="color: {response['color']}; font-family: 'Orbitron'; font-size: 0.85rem; font-weight: 800; letter-spacing: 1.5px;">
                     {response['emoji']} TU COMPAÑERO DICE
@@ -698,7 +861,7 @@ with col_dialogo:
                 </span>
             </div>
 
-            <h2 style="font-size: 1.55rem; font-weight: 700; margin: 0 0 12px 0; color: #ffffff; text-shadow: 0 0 15px rgba(255,255,255,0.25);">
+            <h2 style="font-size: 1.6rem; font-weight: 700; margin: 0 0 12px 0; color: #ffffff; text-shadow: 0 0 18px var(--mood-glow);">
                 {response['title']}
             </h2>
 
@@ -718,7 +881,7 @@ with col_dialogo:
         if voice_audio:
             render_clean_html(
                 f"""
-                <div style="display: flex; align-items: center; margin-top: 4px; margin-bottom: 6px;">
+                <div style="display: flex; align-items: center; margin-top: 6px; margin-bottom: 6px;">
                     <div class="audio-equalizer">
                         <div class="audio-bar"></div>
                         <div class="audio-bar"></div>
@@ -744,11 +907,11 @@ with col_dialogo:
                     """
                 )
 
-    # Traducción multilingüe
+    # Traducción Multilingüe
     if translated_display:
         render_clean_html(
             f"""
-            <div style="background: rgba(100, 210, 255, 0.05); border-radius: 14px; padding: 12px 18px; border: 1px solid rgba(100, 210, 255, 0.2); margin-top: 8px;">
+            <div style="background: rgba(100, 210, 255, 0.05); border-radius: 14px; padding: 12px 18px; border: 1.5px solid var(--mood-color); box-shadow: 0 0 20px var(--mood-glow); margin-top: 10px;">
                 <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; color: {response['color']}; letter-spacing: 1.5px;">
                     TRADUCCIÓN ({selected_lang.upper()}):
                 </div>
@@ -759,14 +922,14 @@ with col_dialogo:
             """
         )
 
-# COLUMNA DERECHA: GRÁFICO LOTTIE CORRECTAMENTE CONTENIDO
+
+# COLUMNA DERECHA: GRÁFICO LOTTIE 100% CONTENIDO EN SU CUADRO
 with col_robo:
-    # Contenedor con borde cerrado donde reside el gráfico sin desbordarse
     with st.container(border=True):
-        # Cabecera de estado
+        # Cabecera de telemetría del robot
         render_clean_html(
             f"""
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; width: 100%;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; width: 100%;">
                 <span style="font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; color: {response['color']}; letter-spacing: 2px;">
                     ● RADAR ACTIVO
                 </span>
@@ -777,24 +940,35 @@ with col_robo:
             """
         )
 
-        # El gráfico del robot Lottie queda adentro del cuadro diseñado
+        # Gráfico del robot
         if active_lottie:
             st.lottie(
                 active_lottie,
-                width=260,
-                height=260,
+                width=270,
+                height=270,
                 key=f"hologram_robot_{response['marker']}",
             )
         else:
             st.info("Buscando animación Lottie...")
 
-        # Medidor gráfico de polaridad adentro del mismo cuadro
+        # Pedestal Holográfico 3D (anillos giratorios + haz de luz bajo el robot)
+        render_clean_html(
+            """
+            <div class="holo-base">
+                <div class="holo-emitter-beam"></div>
+                <div class="holo-ring-outer"></div>
+                <div class="holo-ring-inner"></div>
+            </div>
+            """
+        )
+
+        # Medidor visual de polaridad interactivo
         pin_percent = int(((polarity_val + 1.0) / 2.0) * 100)
         pin_percent = max(0, min(100, pin_percent))
 
         render_clean_html(
             f"""
-            <div style="margin-top: 8px; padding: 0 4px; width: 100%;">
+            <div style="margin-top: 4px; padding: 0 4px; width: 100%;">
                 <div style="display: flex; justify-content: space-between; font-size: 0.75rem; font-family: 'JetBrains Mono'; color: #7f97b2;">
                     <span>Negativo (-1.0)</span>
                     <span style="color: {response['color']}; font-weight: 700;">Ánimo: {polarity_val:+0.2f}</span>
@@ -836,4 +1010,4 @@ with st.sidebar:
         - **Calma:** Resplandor cian y reflexión tranquila.
         """
     )
-    st.caption("NOIR.AI // Python 3.11 // Lottie Embedded Right")
+    st.caption("NOIR.AI // Python 3.11 // Full Cyber-Noir FX")
