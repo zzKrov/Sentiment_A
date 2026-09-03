@@ -2,6 +2,9 @@ import os
 import json
 import copy
 import random
+import asyncio
+import base64
+import concurrent.futures
 from io import BytesIO
 import streamlit as st
 from streamlit_lottie import st_lottie
@@ -11,7 +14,15 @@ from gtts import gTTS
 # Compatibilidad con la sintaxis st.lottie de las diapositivas
 st.lottie = st_lottie
 
-# Motores de traducción resilientes para Python 3.11
+# -----------------------------------------------------------------------------
+# MOTOR DE VOZ MASCULINA NEURAL (edge-tts) CON FALLBACK (gTTS)
+# -----------------------------------------------------------------------------
+try:
+    import edge_tts
+    HAS_EDGE_TTS = True
+except Exception:
+    HAS_EDGE_TTS = False
+
 try:
     from deep_translator import GoogleTranslator
     HAS_DEEP = True
@@ -25,8 +36,58 @@ except Exception:
     HAS_GTRANS = False
 
 
+def run_async(coro):
+    """Ejecuta corrutinas de forma segura sin colisionar con el bucle de eventos de Streamlit."""
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        loop = None
+
+    if loop and loop.is_running():
+        with concurrent.futures.ThreadPoolExecutor() as pool:
+            return pool.submit(asyncio.run, coro).result()
+    else:
+        return asyncio.run(coro)
+
+
+def get_speech_audio(text: str, voice_name: str = "es-ES-AlvaroNeural") -> bytes:
+    """
+    Genera audio con voz masculina natural (edge-tts).
+    Si no hay conexión o falla, utiliza gTTS como alternativa.
+    """
+    if not text or not text.strip():
+        return b""
+
+    # 1. Intento con voz masculina neural
+    if HAS_EDGE_TTS:
+        try:
+            async def _synthesize():
+                comm = edge_tts.Communicate(text, voice_name)
+                chunks = []
+                async for chunk in comm.stream():
+                    if chunk["type"] == "audio":
+                        chunks.append(chunk["data"])
+                return b"".join(chunks)
+
+            audio_data = run_async(_synthesize())
+            if audio_data:
+                return audio_data
+        except Exception:
+            pass
+
+    # 2. Respaldo gTTS (con acento regional)
+    try:
+        tts = gTTS(text=text, lang="es", tld="es", slow=False)
+        fp = BytesIO()
+        tts.write_to_fp(fp)
+        fp.seek(0)
+        return fp.read()
+    except Exception:
+        return b""
+
+
 # -----------------------------------------------------------------------------
-# 1. HELPER HTML (Sin sangría para evitar bloques de código de Markdown)
+# 1. HELPER HTML
 # -----------------------------------------------------------------------------
 def render_clean_html(html_str: str):
     clean = "".join(line.strip() for line in html_str.splitlines() if line.strip())
@@ -34,7 +95,7 @@ def render_clean_html(html_str: str):
 
 
 # -----------------------------------------------------------------------------
-# 2. CONFIGURACIÓN Y ESTILO GLOWING NOIR (CENTRADO Y EMBEBIDO)
+# 2. CONFIGURACIÓN Y ESTÉTICA GLOWING NOIR
 # -----------------------------------------------------------------------------
 st.set_page_config(
     page_title="Tu Compañero Emocional",
@@ -58,7 +119,6 @@ html, body, [data-testid="stAppViewContainer"] {
     background: transparent !important;
 }
 
-/* Centrado general para que en pantallas anchas no se disperse */
 .block-container {
     max-width: 1150px !important;
     padding-top: 1.8rem !important;
@@ -66,7 +126,6 @@ html, body, [data-testid="stAppViewContainer"] {
     margin: 0 auto !important;
 }
 
-/* Partículas interactivas de fondo */
 #noir-canvas-bg {
     position: fixed;
     top: 0;
@@ -88,7 +147,6 @@ html, body, [data-testid="stAppViewContainer"] {
     margin-bottom: 4px;
 }
 
-/* Estilo unificado para la tarjeta derecha */
 .card-noir {
     background: rgba(13, 18, 30, 0.75);
     border: 1px solid rgba(100, 210, 255, 0.18);
@@ -100,7 +158,6 @@ html, body, [data-testid="stAppViewContainer"] {
     margin-bottom: 12px;
 }
 
-/* Estilo que envuelve directamente el contenedor nativo del robot */
 div[data-testid="stVerticalBlockBorderWrapper"] {
     background: rgba(13, 18, 30, 0.75) !important;
     border: 1px solid rgba(100, 210, 255, 0.18) !important;
@@ -114,7 +171,6 @@ div[data-testid="stVerticalBlockBorderWrapper"] {
     align-items: center !important;
 }
 
-/* Centrado y resplandor para el widget de Lottie */
 div[data-testid="stLottie"], iframe[title="streamlit_lottie.st_lottie"] {
     display: flex !important;
     justify-content: center !important;
@@ -227,11 +283,10 @@ render_clean_html(NOIR_STYLE)
 
 
 # -----------------------------------------------------------------------------
-# 3. CARGA DE ARCHIVO Y ELIMINACIÓN DE BOTONES DEL LOTTIE
+# 3. CARGA DE ARCHIVO Y SUPRESIÓN DE BOTONES DEL LOTTIE
 # -----------------------------------------------------------------------------
 @st.cache_data
 def load_and_clean_lottie():
-    """Busca el archivo Lottie y apaga las capas de botones que vienen en la base."""
     search_dirs = []
     try:
         search_dirs.append(os.path.dirname(os.path.abspath(__file__)))
@@ -267,7 +322,6 @@ def load_and_clean_lottie():
         if loaded_json:
             break
 
-    # Búsqueda recursiva en subcarpetas
     if not loaded_json:
         for sdir in search_dirs:
             if not sdir or not os.path.isdir(sdir):
@@ -291,7 +345,7 @@ def load_and_clean_lottie():
     if not loaded_json:
         return None
 
-    # Supresión de capas correspondientes a los botones dibujados (capas 1 a 10)
+    # Ocultar capas 1 a 10 (botones dibujados en la base del JSON)
     clean_anim = copy.deepcopy(loaded_json)
     button_words = ["outlines", "think", "alert", "jump", "yes", "no"]
     clean_layers = []
@@ -312,7 +366,6 @@ base_animation = load_and_clean_lottie()
 
 
 def get_mood_slice(anim_data, marker: str):
-    """Segmenta los fotogramas para reproducir la emoción correspondiente."""
     if not anim_data:
         return None
 
@@ -337,7 +390,7 @@ def get_mood_slice(anim_data, marker: str):
 
 
 # -----------------------------------------------------------------------------
-# 4. TRADUCCIÓN Y VOZ SINTETIZADA
+# 4. TRADUCCIÓN
 # -----------------------------------------------------------------------------
 def translate_phrase(text: str, source_lang: str = "auto", target_lang: str = "en") -> str:
     if not text or not text.strip():
@@ -361,19 +414,8 @@ def translate_phrase(text: str, source_lang: str = "auto", target_lang: str = "e
     return text
 
 
-def get_speech_audio(text: str, lang: str = "es") -> bytes:
-    try:
-        tts = gTTS(text=text, lang=lang, slow=False)
-        fp = BytesIO()
-        tts.write_to_fp(fp)
-        fp.seek(0)
-        return fp.read()
-    except Exception:
-        return b""
-
-
 # -----------------------------------------------------------------------------
-# 5. MENSAJES AMIGABLES Y EMPÁTICOS
+# 5. MENSAJES AMIGABLES
 # -----------------------------------------------------------------------------
 CHISTES = [
     "—Papá, ¿qué se siente tener un hijo tan inteligente? —No sé hijo, pregúntale a tu abuelo.",
@@ -526,7 +568,6 @@ else:
         "message": "Cuéntame lo que estás sintiendo o lo que hiciste hoy. Te escucharé con atención y aquí estaré para responderte.",
     }
 
-# Preparación de la animación
 active_lottie = get_mood_slice(base_animation, response["marker"])
 
 
@@ -536,7 +577,7 @@ active_lottie = get_mood_slice(base_animation, response["marker"])
 col_robo, col_dialogo = st.columns([1, 1.3], gap="large")
 
 with col_robo:
-    # Contenedor nativo que envuelve el robot y su estado en UNA sola tarjeta
+    # Contenedor nativo que envuelve el robot en una tarjeta limpia
     with st.container(border=True):
         render_clean_html(
             f"""
@@ -552,7 +593,6 @@ with col_robo:
         )
 
         if active_lottie:
-            # st.lottie dentro del cuadro diseñado, centrado y a la altura del texto
             st.lottie(
                 active_lottie,
                 width=260,
@@ -574,7 +614,6 @@ with col_robo:
 
 
 with col_dialogo:
-    # Tarjeta de diálogo a la misma altura exacta
     render_clean_html(
         f"""
         <div class="card-noir" style="border-left: 4px solid {response['color']};">
@@ -598,13 +637,28 @@ with col_dialogo:
         """
     )
 
-    # Reproductor de voz
+    # REPRODUCCIÓN AUTOMÁTICA CON VOZ MASCULINA NEURAL
     if user_phrase and user_phrase.strip():
+        # Voz masculina predeterminada: Álvaro (España) o Jorge (México)
+        selected_male_voice = st.session_state.get("preferred_voice", "es-ES-AlvaroNeural")
         spoken_text = f"{response['title']}. {response['message']}"
-        voice_audio = get_speech_audio(spoken_text, lang="es")
+        voice_audio = get_speech_audio(spoken_text, voice_name=selected_male_voice)
+
         if voice_audio:
-            st.caption("🔊 Escuchar la respuesta:")
-            st.audio(voice_audio, format="audio/mp3")
+            st.caption("🎙️ Voz masculina en reproducción automática:")
+            # Autoplay nativo en Streamlit >= 1.34
+            try:
+                st.audio(voice_audio, format="audio/mp3", autoplay=True)
+            except TypeError:
+                # Fallback HTML5 con autoplay para versiones anteriores
+                b64_audio = base64.b64encode(voice_audio).decode("utf-8")
+                render_clean_html(
+                    f"""
+                    <audio autoplay controls style="width: 100%; height: 38px; border-radius: 10px; margin-top: 6px;">
+                        <source src="data:audio/mp3;base64,{b64_audio}" type="audio/mp3">
+                    </audio>
+                    """
+                )
 
     # Traducción
     if translated_display:
@@ -623,19 +677,34 @@ with col_dialogo:
 
 
 # -----------------------------------------------------------------------------
-# 8. BARRA LATERAL INFORMATIVA
+# 8. BARRA LATERAL: PERSONALIZACIÓN DE VOZ & PARÁMETROS
 # -----------------------------------------------------------------------------
 with st.sidebar:
+    st.markdown("### 🎙️ Personalización de Voz")
+    voice_options = {
+        "es-ES-AlvaroNeural": "Voz Masculina (Álvaro - España)",
+        "es-MX-JorgeNeural": "Voz Masculina (Jorge - México)",
+        "es-CO-GonzaloNeural": "Voz Masculina (Gonzalo - Colombia)",
+        "es-AR-TomasNeural": "Voz Masculina (Tomás - Argentina)",
+    }
+    st.selectbox(
+        label="Selecciona la voz del compañero:",
+        options=list(voice_options.keys()),
+        format_func=lambda v: voice_options[v],
+        key="preferred_voice",
+        help="Voces neurales masculinas generadas automáticamente.",
+    )
+
+    st.markdown("---")
     st.markdown("### 💡 ¿Cómo funciona?")
     st.info(
         """
         **Análisis de Ánimo:**
         El compañero analiza el texto ingresado para entender cómo te sientes:
-        - **Positivo (> 0):** Celebrará tus logros y te motivará a seguir con esa buena energía.
-        - **Triste (< 0):** Te acompañará y te contará un chiste para levantarte el ánimo.
-        - **Enojado o Frustrado:** Te ofrecerá palabras de calma y consejos para relajarte.
-        - **Neutral (~ 0):** Conversará contigo de forma abierta y reflexiva.
+        - **Positivo (> 0):** Celebra contigo y te transmite motivación.
+        - **Triste (< 0):** Te acompaña y te cuenta un chiste para levantarte el ánimo.
+        - **Enojado o Frustrado:** Te brinda palabras de calma y consejos para desconectar.
+        - **Neutral (~ 0):** Conversa de forma tranquila y reflexiva.
         """
     )
-    st.markdown("---")
-    st.caption("NOIR.AI // Python 3.11 // TextBlob & Streamlit-Lottie")
+    st.caption("NOIR.AI // Python 3.11 // Autoplay Neural Voice")
