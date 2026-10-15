@@ -15,13 +15,155 @@ from gtts import gTTS
 st.lottie = st_lottie
 
 # -----------------------------------------------------------------------------
-# TRADUCCIÓN RESILIENTE DIRECTA Y DE RESPALDO
+# CONFIGURACIÓN GENERAL
+# -----------------------------------------------------------------------------
+st.set_page_config(
+    page_title="Compañero Emocional // Krov Industries",
+    page_icon="🤖",
+    layout="wide",
+    initial_sidebar_state="collapsed",
+)
+
+# -----------------------------------------------------------------------------
+# LÍNEA BASE VISUAL: AURORA BOREAL MULTICOLOR Y FLUIDOS
+# -----------------------------------------------------------------------------
+st.markdown("""
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap');
+
+html, body, [data-testid="stAppViewContainer"] {
+    background-color: #05070c !important;
+    color: #e6edf5 !important;
+    font-family: 'Plus Jakarta Sans', sans-serif !important;
+    overflow-x: hidden;
+}
+
+[data-testid="stHeader"] { background: transparent !important; }
+
+/* 1. Fondo aurora boreal continuo */
+.stApp {
+    background: linear-gradient(135deg, #05070c 0%, #0d1222 30%, #170d28 60%, #060b18 100%) !important;
+    background-size: 300% 300% !important;
+    animation: auroraShift 18s ease infinite alternate !important;
+}
+
+@keyframes auroraShift {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+/* 2. Fluidos orgánicos de luz reactiva */
+.fluid-aurora-1 {
+    position: fixed;
+    top: 15%;
+    left: -100px;
+    width: 520px;
+    height: 520px;
+    background: radial-gradient(circle, rgba(0, 240, 255, 0.12) 0%, rgba(191, 90, 242, 0.04) 55%, transparent 70%);
+    border-radius: 40% 60% 70% 30% / 50% 60% 40% 50%;
+    filter: blur(85px);
+    animation: auroraDrift1 22s infinite alternate ease-in-out;
+    pointer-events: none;
+    z-index: 0;
+}
+
+.fluid-aurora-2 {
+    position: fixed;
+    bottom: 5%;
+    right: -80px;
+    width: 560px;
+    height: 560px;
+    background: radial-gradient(circle, rgba(191, 90, 242, 0.12) 0%, rgba(0, 240, 255, 0.03) 55%, transparent 70%);
+    border-radius: 60% 40% 50% 50% / 40% 50% 60% 50%;
+    filter: blur(90px);
+    animation: auroraDrift2 25s infinite alternate ease-in-out;
+    pointer-events: none;
+    z-index: 0;
+}
+
+@keyframes auroraDrift1 {
+    0% { transform: translate(0, 0) scale(1); }
+    50% { transform: translate(120px, 60px) scale(1.15); }
+    100% { transform: translate(40px, 140px) scale(0.95); }
+}
+
+@keyframes auroraDrift2 {
+    0% { transform: translate(0, 0) scale(1); }
+    50% { transform: translate(-100px, -70px) scale(1.2); }
+    100% { transform: translate(-30px, -120px) scale(0.9); }
+}
+
+.brand-signature {
+    text-align: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.16em;
+    color: #38bdf8;
+    text-transform: uppercase;
+}
+
+.holo-stage {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 14px;
+    background: rgba(13, 16, 26, 0.75);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+}
+
+.holo-pedestal {
+    position: relative;
+    width: 220px;
+    height: 45px;
+    margin-top: -24px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.holo-ring-outer {
+    position: absolute;
+    width: 210px;
+    height: 40px;
+    border-radius: 50%;
+    border: 2px dashed #00f0ff;
+    box-shadow: 0 0 15px rgba(0, 240, 255, 0.6);
+    transform: rotateX(72deg);
+    animation: spinHolo 8s linear infinite;
+}
+
+@keyframes spinHolo {
+    0% { transform: rotateX(72deg) rotateZ(0deg); }
+    100% { transform: rotateX(72deg) rotateZ(360deg); }
+}
+
+.dialogue-card {
+    background: rgba(13, 16, 26, 0.85);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-left: 4px solid #00f0ff;
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    backdrop-filter: blur(12px);
+}
+</style>
+
+<div class="fluid-aurora-1"></div>
+<div class="fluid-aurora-2"></div>
+""", unsafe_allow_html=True)
+
+# -----------------------------------------------------------------------------
+# TRADUCCIÓN RESILIENTE DIRECTA
 # -----------------------------------------------------------------------------
 def translate_phrase(text: str, source_lang: str = "auto", target_lang: str = "en") -> str:
     if not text or not text.strip() or source_lang == target_lang:
         return text
 
-    # Intento 1: API Directa de Google (Garantiza funcionamiento sin fallos de librería)
+    # Intento primario: API directa
     try:
         url = f"https://translate.googleapis.com/translate_a/single?client=gtx&sl={source_lang}&tl={target_lang}&dt=t&q={urllib.parse.quote(text)}"
         req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
@@ -31,22 +173,14 @@ def translate_phrase(text: str, source_lang: str = "auto", target_lang: str = "e
     except Exception:
         pass
 
-    # Intento 2: deep_translator si está disponible
+    # Respaldo: deep_translator
     try:
         from deep_translator import GoogleTranslator
         return GoogleTranslator(source=source_lang, target=target_lang).translate(text)
     except Exception:
         pass
 
-    # Intento 3: googletrans si está disponible
-    try:
-        from googletrans import Translator as GTrans
-        return GTrans().translate(text, src=source_lang, dest=target_lang).text
-    except Exception:
-        pass
-
     return text
-
 
 def get_speech_audio(text: str) -> bytes:
     if not text or not text.strip():
@@ -61,17 +195,7 @@ def get_speech_audio(text: str) -> bytes:
         return b""
 
 # -----------------------------------------------------------------------------
-# CONFIGURACIÓN GENERAL
-# -----------------------------------------------------------------------------
-st.set_page_config(
-    page_title="Compañero Emocional // Krov Industries",
-    page_icon="🤖",
-    layout="wide",
-    initial_sidebar_state="collapsed",
-)
-
-# -----------------------------------------------------------------------------
-# CARGA Y CORTE EXACTO DEL LOTTIE
+# CARGA Y RECORTE DEL LOTTIE
 # -----------------------------------------------------------------------------
 @st.cache_data
 def load_and_clean_lottie():
@@ -113,7 +237,7 @@ def get_mood_slice(anim_data, marker: str):
     return sliced
 
 # -----------------------------------------------------------------------------
-# LÓGICA DE CONVERSACIÓN RIGUROSAMENTE DIFERENCIADA
+# RECONOCIMIENTO EMOCIONAL CON TEXTBLOB Y CONTEXTO
 # -----------------------------------------------------------------------------
 CHISTES = [
     "¿Qué le dice un bit a otro? —Nos vemos en el bus.",
@@ -154,7 +278,7 @@ def analyze_conversation(user_text: str):
             "polarity": pol, "subjectivity": subj
         }
 
-    # 3. DÍA ESTRESANTE (ALERT) -> Manejo de ansiedad, pausas y carga laboral
+    # 3. DÍA ESTRESANTE (ALERT)
     if any(k in lower for k in ["estrés", "estresante", "ansiedad", "nervioso", "preocupado", "tensión", "presión", "urgente"]):
         return {
             "title": "Momento de bajar el ritmo y priorizar...",
@@ -166,7 +290,7 @@ def analyze_conversation(user_text: str):
             "polarity": pol, "subjectivity": subj
         }
 
-    # 4. MALA JORNADA (NO) -> Empatía ante reveses, desánimo y humor para distender
+    # 4. MALA JORNADA (NO)
     if any(k in lower for k in ["mala jornada", "pésimo", "desastre", "mal día", "frustrado", "enojo", "triste", "horrible"]) or pol < -0.10:
         return {
             "title": "Lamento que las cosas hayan salido mal hoy...",
@@ -178,7 +302,7 @@ def analyze_conversation(user_text: str):
             "polarity": pol, "subjectivity": subj
         }
 
-    # 5. PENSATIVO (THINKING) -> Reflexión estratégica, evaluación de opciones y calma
+    # 5. PENSATIVO (THINKING)
     return {
         "title": "Analicemos las variables con perspectiva...",
         "feeling": "Reflexivo y Analítico",
@@ -189,78 +313,6 @@ def analyze_conversation(user_text: str):
         "polarity": pol, "subjectivity": subj
     }
 
-# ---------------------------------------------------------
-# ESTILOS VISUALES Y PEDESTAL HOLOGRÁFICO CENTRADO
-# ---------------------------------------------------------
-st.markdown("""
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap');
-
-html, body, [data-testid="stAppViewContainer"] {
-    background-color: #05070c !important;
-    color: #e6edf5 !important;
-    font-family: 'Plus Jakarta Sans', sans-serif !important;
-}
-
-[data-testid="stHeader"] { background: transparent !important; }
-
-.brand-signature {
-    text-align: center;
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 0.72rem;
-    letter-spacing: 0.16em;
-    color: #38bdf8;
-    text-transform: uppercase;
-}
-
-.holo-stage {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 12px;
-    background: rgba(13, 16, 26, 0.75);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 12px;
-}
-
-.holo-pedestal {
-    position: relative;
-    width: 220px;
-    height: 45px;
-    margin-top: -20px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-}
-
-.holo-ring-outer {
-    position: absolute;
-    width: 210px;
-    height: 40px;
-    border-radius: 50%;
-    border: 2px dashed #00f0ff;
-    box-shadow: 0 0 15px rgba(0, 240, 255, 0.6);
-    transform: rotateX(72deg);
-    animation: spinHolo 8s linear infinite;
-}
-
-@keyframes spinHolo {
-    0% { transform: rotateX(72deg) rotateZ(0deg); }
-    100% { transform: rotateX(72deg) rotateZ(360deg); }
-}
-
-.dialogue-card {
-    background: rgba(13, 16, 26, 0.85);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-left: 4px solid #00f0ff;
-    border-radius: 10px;
-    padding: 18px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-}
-</style>
-""", unsafe_allow_html=True)
-
 st.markdown('<div class="brand-signature">Krov Industries · Asistencia Empática</div>', unsafe_allow_html=True)
 st.markdown("<h2 style='text-align:center; color:#ffffff; margin:2px 0 12px 0;'>Compañero de Conversación</h2>", unsafe_allow_html=True)
 
@@ -268,7 +320,6 @@ st.markdown("<h2 style='text-align:center; color:#ffffff; margin:2px 0 12px 0;'>
 # BOTONES RÁPIDOS
 # ---------------------------------------------------------
 c1, c2, c3, c4, c5 = st.columns(5)
-user_phrase = ""
 
 if "active_mood_text" not in st.session_state:
     st.session_state["active_mood_text"] = "Hola, ¿cómo estás hoy?"
